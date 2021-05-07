@@ -11,6 +11,7 @@ import logging
 import warnings
 
 import numpy as np
+import geopandas as gpd
 
 from .data_types import DataType, OverwritePermission
 
@@ -576,5 +577,124 @@ class OOI:
 #                                   pixel=pixel, mask=mask)
 #        return vis.plot()
         
+class _DataDict(dict):
+    """
+    A dictionary structure that holds data of certain data type.
+    It checks that data have a correct dimension. 
+    It also supports lazy loading by accepting a function as a data value, 
+    which is then called when the data is accessed.
+    """
+    FORBIDDEN_CHARS = {'.', '/', '\\', '|', ';', ':', '\n', '\t'}
+
+    def __init__(self, data_dict, data_type):
+        """
+        :param data_dict: A dictionary of data names and values
+        :type data_dict: dict(str: object)
+        :param data_type: Type of data
+        :type data_type: DataType
+        """
+        super().__init__()
+
+    def __setitem__(self, ooi_name, value):
+        """ 
+        Before setting value to the dictionary it checks that value is of 
+        correct type and dimension and tries to transform value in correct form.
+        """
+        value = self._parse_feature_value(value)
+        self._check_feature_name(ooi_name)
+        super().__setitem__(ooi_name, value)
+
+    def _check_data_name(self, ooi_name):
+        if not isinstance(ooi_name, str):
+            error_msg = "Feature name must be a string but an object of\
+            type {} was given."
+            raise ValueError(error_msg.format(type(ooi_name)))
+
+        for char in ooi_name:
+            if char in self.FORBIDDEN_CHARS:
+                error_msg = "The name of feature ({}, {}) contains an\
+                    illegal character '{}'."
+                raise ValueError(error_msg.format(self.data_type, 
+                                                  ooi_name, char))
+
+        if ooi_name == '':
+            raise ValueError("Feature name cannot be an empty string.")
+
+    def __getitem__(self, ooi_name, load=True):
+        """Implements lazy loading."""
+        value = super().__getitem__(ooi_name)
+
+        ## TODO!
+#        if isinstance(value, FeatureIO) and load:
+#            value = value.load()
+#            self[feature_name] = value
+
+        return value
+
+    def get_dict(self):
+        """
+        Returns a Python dictionary of data and value.
+        """
+        return dict(self)
+
+    def _parse_data_value(self, value):
+        """ 
+        Checks if value fits the data type. 
+        If not it tries to fix it or raise an error
         
-        
+        :raises: ValueError
+        """
+        ## TODO!
+#        if isinstance(value, FeatureIO):
+#            return value
+        if not hasattr(self, 'ndim'):  # Because of serialization/deserialization during multiprocessing
+            return value
+
+        if self.ndim:
+            if not isinstance(value, np.ndarray):
+                raise ValueError('{} data has to be a numpy array'.\
+                                 format(self.data_type))
+            if value.ndim != self.ndim:
+                raise ValueError('Numpy array of {} data has to have {} '
+                                 'dimension{}'.format(self.data_type, 
+                                                      self.ndim, 's'\
+                                                          if self.ndim > 1 else ''))
+
+            if self.data_type.is_discrete():
+                if not issubclass(value.dtype.type, 
+                                  (np.integer, bool, np.bool_, np.bool8)):
+                    msg = '{} is a discrete data type therefore dtype of\
+                        data should be a subtype of ' \
+                          'numpy.integer or numpy.bool, found type {}.\
+                              In the future an error will be raised because ' \
+                                  'of this'.\
+                                      format(self.data_type, value.dtype.type)
+                    warnings.warn(msg, DeprecationWarning, stacklevel=3)
+
+            # This checking is disabled for now
+            # else:
+            #     if not issubclass(value.dtype.type, (np.floating, np.float)):
+            #         raise ValueError('{} is a floating feature type therefore dtype of data has to be a subtype of '
+            #                          'numpy.floating or numpy.float, found type {}'.format(self.feature_type,
+            #                                                                                value.dtype.type))
+            return value
+
+        if self.is_vector:
+            if isinstance(value, gpd.GeoSeries):
+                value = gpd.GeoDataFrame(dict(geometry=value), crs=value.crs)
+
+            if isinstance(value, gpd.GeoDataFrame):
+                if self.data_type is DataType.VECTOR:
+                    if DataType.TIMESTAMP.value.upper() not in value:
+                        raise ValueError("{} data has to contain a column\
+                                         'TIMESTAMP' with timestamps".\
+                                             format(self.data_type))
+
+                return value
+
+            raise ValueError('{} data works with data of type {},\
+                             parsing data type {} is not supported given'.\
+                                 format(self.data_type, 
+                                        gpd.GeoDataFrame.__name__, type(value)))
+
+        return value
