@@ -20,6 +20,7 @@ from sentinelhub import BBox, CRS
 
 from .data_types import DataType, OverwritePermission
 from .data_OOI_IO import save_ooi, load_ooi, DataIO
+from .utils.filesystem_utils import get_filesystem
 
 LOGGER = logging.getLogger(__name__)
 warnings.simplefilter('default', DeprecationWarning)
@@ -440,8 +441,7 @@ class OOI:
         :type filesystem: fs.FS or None
         """
         if filesystem is None:
-            ## TODO!
-            # filesystem = get_filesystem(path, create=True)
+            filesystem = get_filesystem(path, create=True)
             path = '/'
             
             save_ooi(self, filesystem, path, data=data, 
@@ -469,8 +469,7 @@ class OOI:
         :rtype: OOI
         """
         if filesystem is None:
-            ## TODO!
-            # filesystem = get_filesystem(path, create=False)
+            filesystem = get_filesystem(path, create=False)
             path = '/'
 
         return load_ooi(OOI(), filesystem, path, data=data, 
