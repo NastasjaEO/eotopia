@@ -99,29 +99,63 @@ class DataType(Enum):
         return dict
 
 class DataFormat(Enum):
-    """ A collection of immutable sets of feature types, grouped together by certain properties.
+    """ 
+    A collection of immutable sets of data types, grouped together by 
+    certain properties.
     """
-    SPATIAL_TYPES = frozenset([DataType.DATA, DataType.MASK, DataType.VECTOR, DataType.DATA_TIMELESS,
-                               DataType.MASK_TIMELESS, DataType.VECTOR_TIMELESS])
-    TIME_DEPENDENT_TYPES = frozenset([DataType.DATA, DataType.MASK, DataType.SCALAR, DataType.LABEL,
-                                      DataType.VECTOR, DataType.TIMESTAMP])
-    TIMELESS_TYPES = frozenset([DataType.DATA_TIMELESS, DataType.MASK_TIMELESS, DataType.SCALAR_TIMELESS,
-                                DataType.LABEL_TIMELESS, DataType.VECTOR_TIMELESS])
-    DISCRETE_TYPES = frozenset([DataType.MASK, DataType.MASK_TIMELESS, DataType.LABEL,
+    SPATIAL_TYPES = frozenset([DataType.DATA, 
+                               DataType.MASK, 
+                               DataType.VECTOR, 
+                               DataType.DATA_TIMELESS,
+                               DataType.MASK_TIMELESS, 
+                               DataType.VECTOR_TIMELESS])
+    TIME_DEPENDENT_TYPES = frozenset([DataType.DATA, 
+                                      DataType.MASK, 
+                                      DataType.SCALAR, 
+                                      DataType.LABEL,
+                                      DataType.VECTOR, 
+                                      DataType.TIMESTAMP])
+    TIMELESS_TYPES = frozenset([DataType.DATA_TIMELESS, 
+                                DataType.MASK_TIMELESS, 
+                                DataType.SCALAR_TIMELESS,
+                                DataType.LABEL_TIMELESS, 
+                                DataType.VECTOR_TIMELESS])
+    DISCRETE_TYPES = frozenset([DataType.MASK, 
+                                DataType.MASK_TIMELESS, 
+                                DataType.LABEL,
                                 DataType.LABEL_TIMELESS])
-    META_TYPES = frozenset([DataType.META_INFO, DataType.BBOX, DataType.TIMESTAMP])
-    VECTOR_TYPES = frozenset([DataType.VECTOR, DataType.VECTOR_TIMELESS])
-    RASTER_TYPES = frozenset([DataType.DATA, DataType.MASK, DataType.SCALAR, DataType.LABEL,
-                              DataType.DATA_TIMELESS, DataType.MASK_TIMELESS, DataType.SCALAR_TIMELESS,
+    META_TYPES = frozenset([DataType.META_INFO, 
+                            DataType.BBOX, 
+                            DataType.TIMESTAMP])
+    VECTOR_TYPES = frozenset([DataType.VECTOR, 
+                              DataType.VECTOR_TIMELESS])
+    RASTER_TYPES = frozenset([DataType.DATA, 
+                              DataType.MASK, 
+                              DataType.SCALAR, 
+                              DataType.LABEL,
+                              DataType.DATA_TIMELESS, 
+                              DataType.MASK_TIMELESS, 
+                              DataType.SCALAR_TIMELESS,
                               DataType.LABEL_TIMELESS])
-    DICT_TYPES = frozenset([DataType.DATA, DataType.MASK, DataType.SCALAR, DataType.LABEL,
-                            DataType.VECTOR, DataType.DATA_TIMELESS, DataType.MASK_TIMELESS,
-                            DataType.SCALAR_TIMELESS, DataType.LABEL_TIMELESS, DataType.VECTOR_TIMELESS,
+    DICT_TYPES = frozenset([DataType.DATA, 
+                            DataType.MASK, 
+                            DataType.SCALAR, 
+                            DataType.LABEL,
+                            DataType.VECTOR, 
+                            DataType.DATA_TIMELESS, 
+                            DataType.MASK_TIMELESS,
+                            DataType.SCALAR_TIMELESS, 
+                            DataType.LABEL_TIMELESS, 
+                            DataType.VECTOR_TIMELESS,
                             DataType.META_INFO])
-    RASTER_TYPES_4D = frozenset([DataType.DATA, DataType.MASK])
-    RASTER_TYPES_3D = frozenset([DataType.DATA_TIMELESS, DataType.MASK_TIMELESS])
-    RASTER_TYPES_2D = frozenset([DataType.SCALAR, DataType.LABEL])
-    RASTER_TYPES_1D = frozenset([DataType.SCALAR_TIMELESS, DataType.LABEL_TIMELESS])
+    RASTER_TYPES_4D = frozenset([DataType.DATA, 
+                                 DataType.MASK])
+    RASTER_TYPES_3D = frozenset([DataType.DATA_TIMELESS, 
+                                 DataType.MASK_TIMELESS])
+    RASTER_TYPES_2D = frozenset([DataType.SCALAR, 
+                                 DataType.LABEL])
+    RASTER_TYPES_1D = frozenset([DataType.SCALAR_TIMELESS, 
+                                 DataType.LABEL_TIMELESS])
 
 
 class DataTypeSet(Enum):
@@ -163,7 +197,8 @@ class OverwritePermission(Enum):
     Enum class which specifies which content of saved Data can be overwritten 
     when saving new content.
     Permissions are in the following hierarchy:
-    - `ADD_ONLY` - Only new features can be added, anything that is already saved cannot be changed.
+    - `ADD_ONLY` - Only new features can be added, anything that is already 
+        saved cannot be changed.
     - `OVERWRITE_FEATURES` - Overwrite only data for features which have to be 
         saved. The remaining content of saved
         Data will stay unchanged.
