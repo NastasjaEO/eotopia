@@ -1,0 +1,4 @@
+attrs>=20.3.0
+python-dateutil
+numpy>=1.19.0
+sentinelhub>=3.2.1
