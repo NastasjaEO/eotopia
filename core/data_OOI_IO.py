@@ -5,13 +5,19 @@ Created on Fri May  7 20:11:43 2021
 @author: nasta
 """
 
+import pickle
+import gzip
 from collections import defaultdict
 import fs
+from fs.tempfs import TempFS
 import concurrent.futures
 
+import numpy as np
 import geopandas as gpd
 
-from .data_types import DataType, OverwritePermission
+from sentinelhub.os_utils import sys_is_windows
+
+from .data_types import DataType, DataFormat, OverwritePermission
 
 def save_ooi(ooi, filesystem, patch_location, data=..., 
              overwrite_permission=OverwritePermission.ADD_ONLY, 
@@ -33,17 +39,17 @@ def save_ooi(ooi, filesystem, patch_location, data=...,
 #    ooi_data = list(walk_ooi(ooi, patch_location, data))
 
     ## TODO!
-#    if overwrite_permission is OverwritePermission.ADD_ONLY or \
-#            (sys_is_windows() and overwrite_permission is OverwritePermission.OVERWRITE_FEATURES):
-#        fs_features = list(walk_filesystem(filesystem, patch_location))
-#    else:
-#        fs_features = []
+    if overwrite_permission is OverwritePermission.ADD_ONLY or \
+        (sys_is_windows()\
+         and overwrite_permission is OverwritePermission.OVERWRITE_FEATURES):
+        fs_data = list(walk_filesystem(filesystem, patch_location))
+    else:
+        fs_data = []
 
-#    _check_case_matching(ooi_data, fs_features)
-
+#    _check_case_matching(ooi_data, fs_data)
 
 #    if overwrite_permission is OverwritePermission.ADD_ONLY:
-#        _check_add_only_permission(ooi_data, fs_features)
+#        _check_add_only_permission(ooi_data, fs_data)
 
 #    ftype_folder_map = {(ftype, fs.path.dirname(path))\
 #                        for ftype, _, path in ooi_data if not ftype.is_meta()}
@@ -53,9 +59,9 @@ def save_ooi(ooi, filesystem, patch_location, data=...,
 #            filesystem.makedirs(folder, recreate=True)
 
     ## TODO!
-#   data_to_save = ((FeatureIO(filesystem, path),
+#   data_to_save = ((DataIO(filesystem, path),
 #                         ooi[(ftype, fname)],
-#                         FileFormat.NPY if ftype.is_raster() else FileFormat.PICKLE,
+#                         DataFormat.NPY if ftype.is_raster() else DataFormat.PICKLE,
 #                         compress_level) for ftype, fname, path in ooi_data)
 
 #    with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -67,18 +73,17 @@ def load_ooi(ooi, filesystem, patch_location, data=..., lazy_loading=False):
     """ 
     A utility function used by OOI.load method
     """
-    ## TODO!
-#    features = list(walk_filesystem(filesystem, patch_location, data))
-#    loading_data = [FeatureIO(filesystem, path) for _, _, path in data]
+    data_list = list(walk_filesystem(filesystem, patch_location, data))
+    loading_data = [DataIO(filesystem, path) for _, _, path in data]
 
-#    if not lazy_loading:
-#        with concurrent.futures.ThreadPoolExecutor() as executor:
-#            loading_data = executor.map(lambda loader: loader.load(), loading_data)
+    if not lazy_loading:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            loading_data = executor.map(lambda loader: loader.load(), loading_data)
 
-#    for (ftype, fname, _), value in zip(data, loading_data):
- #       ooi[(ftype, fname)] = value
-
-#    return ooi
+    for (ftype, fname, _), value in zip(data_list, loading_data):
+        ooi[(ftype, fname)] = value
+    
+    return ooi
 
 def walk_filesystem(filesystem, patch_location, data=...):
     """ 
@@ -203,3 +208,95 @@ def _to_lowercase(ftype, fname, *_):
     Tranforms data to it's lowercase representation
     """
     return ftype, fname if fname is ... else fname.lower()
+
+
+class DataIO:
+    """ 
+    A class handling saving and loading process of single data at a given location
+    """
+    def __init__(self, filesystem, path):
+        """
+        :param filesystem: A filesystem object
+        :type filesystem: fs.FS
+        :param path: A path in the filesystem
+        :type path: str
+        """
+        self.filesystem = filesystem
+        self.path = path
+
+    def __repr__(self):
+        """
+        A representation method
+        """
+        return '{}({})'.format(self.__class__.__name__, self.path)
+
+    def load(self):
+        """ 
+        Method for loading data
+        """
+        with self.filesystem.openbin(self.path, 'r') as file_handle:
+            if self.path.endswith(DataFormat.GZIP.extension()):
+                with gzip.open(file_handle, 'rb') as gzip_fp:
+                    return self._decode(gzip_fp, self.path)
+            return self._decode(file_handle, self.path)
+
+    def save(self, data, file_format, compress_level=0):
+        """ 
+        Method for saving data
+        """
+        gz_extension = DataFormat.GZIP.extension() if compress_level else ''
+        path = self.path + file_format.extension() + gz_extension
+
+        if isinstance(self.filesystem, (fs.osfs.OSFS, TempFS)):
+            with TempFS(temp_dir=self.filesystem.root_path) as tempfs:
+                self._save(tempfs, data, 'tmp_data', file_format, compress_level)
+                fs.move.move_file(tempfs, 'tmp_data', self.filesystem, path)
+            return
+
+    def _save(self, filesystem, data, path, file_format, compress_level=0):
+        """ 
+        Given a filesystem it saves and compresses the data
+        """
+        with filesystem.openbin(path, 'w') as file_handle:
+            if compress_level == 0:
+                self._write_to_file(data, file_handle, file_format)
+                return
+
+            with gzip.GzipFile(fileobj=file_handle, 
+                               compresslevel=compress_level, 
+                               mode='wb') as gzip_file_handle:
+                self._write_to_file(data, gzip_file_handle, file_format)
+
+    @staticmethod
+    def _write_to_file(data, file, file_format):
+        """ 
+        Writes to a file
+        """
+        if file_format is DataFormat.NPY:
+            np.save(file, data)
+        elif file_format is DataFormat.PICKLE:
+            pickle.dump(data, file)
+
+    @staticmethod
+    def _decode(file, path):
+        """ 
+        Loads from a file and decodes content
+        """
+        if DataFormat.PICKLE.extension() in path:
+            data = pickle.load(file)
+
+            # There seems to be an issue in geopandas==0.8.1 
+            # where unpickling GeoDataFrames, which were saved with an
+            # old geopandas version, loads geometry column into 
+            # a pandas.Series instead geopandas.GeoSeries. 
+            # Because of that it is missing a crs attribute which is only 
+            # attached to the entire GeoDataFrame
+            if isinstance(data, gpd.GeoDataFrame) and not\
+                isinstance(data.geometry, gpd.GeoSeries):
+                data = data.set_geometry('geometry')
+            return data
+
+        if DataFormat.NPY.extension() in path:
+            return np.load(file)
+        raise ValueError('Unsupported data type.')
+

@@ -13,12 +13,16 @@ import warnings
 import numpy as np
 import geopandas as gpd
 
+import dateutil.parser
+import datetime
+
+from sentinelhub import BBox, CRS
+
 from .data_types import DataType, OverwritePermission
-from .data_OOI_IO import save_ooi
+from .data_OOI_IO import save_ooi, load_ooi, DataIO
 
 LOGGER = logging.getLogger(__name__)
 warnings.simplefilter('default', DeprecationWarning)
-
 
 
 class OOI:
@@ -41,17 +45,60 @@ class OOI:
     bbox = attr.ib(default=None)
     timestamp = attr.ib(factory=list)
     
-    ## TODO!
-        # Type check
-        # Check or parse value which will be assigned to a data type 
-            # attribute of OOI.
+    def __setattr__(self, key, value, ooi_name=None):
+        """
+        Raises TypeError if data type attributes are not of correct type.
+        In case they are a dictionary they are cast to _DataDict class
+        """
+        if ooi_name not in (None, Ellipsis) and DataType.has_value(key):
+            self[key][ooi_name] = value
+            return
 
-    def __getattribute__(self, key, load=True, feature_name=None):
+        if DataType.has_value(key) and not isinstance(value, DataIO):
+            data_type = DataType(key)
+            value = self._parse_data_type_value(data_type, value)
+        super().__setattr__(key, value)
+
+    @staticmethod
+    def _parse_feature_data_value(data_type, value):
+        """ 
+        Checks or parses value which will be assigned to a data type 
+        attribute of `OOI`. 
+        If the value cannot be parsed correctly it raises an error.
+        :raises: TypeError, ValueError
+        """
+        if data_type.has_dict() and isinstance(value, dict):
+            return value if isinstance(value, _DataDict) else _DataDict(value, 
+                                                                        data_type)
+
+        if data_type is DataType.BBOX:
+            if value is None or isinstance(value, BBox):
+                return value
+            if isinstance(value, (tuple, list)) and len(value) == 5:
+                return BBox(value[:4], crs=value[4])
+
+        if data_type is DataType.TIMESTAMP:
+            if isinstance(value, (tuple, list)):
+                return [timestamp\
+                        if isinstance(timestamp, datetime.date)\
+                            else dateutil.parser.parse(timestamp)
+                        for timestamp in value]
+
+        raise TypeError('Attribute {} requires value of type {} - '
+                        'failed to parse given value {}'.\
+                            format(data_type, data_type.type(), value))
+
+    def __getattribute__(self, key, load=True, ooi_name=None):
         value = super().__getattribute__(key)
 
-        ## TODO!
-            # check io type
-            # check dictionary of features
+        if isinstance(value, DataIO) and load:
+            value = value.load()
+            setattr(self, key, value)
+            value = getattr(self, key)
+
+        if ooi_name not in (None, Ellipsis) and isinstance(value, _DataDict):
+            return value[ooi_name]
+
         return value
 
     def __getitem__(self, data_type):
@@ -217,7 +264,7 @@ class OOI:
                             format(data_type))
 
     ## TODO!
-    # def reset_feature_type(self, feature_type):            
+    # def reset_feature_type(self, data_type):
 
     def set_bbox(self, new_bbox):
         """
@@ -426,8 +473,8 @@ class OOI:
             # filesystem = get_filesystem(path, create=False)
             path = '/'
 
-        ## TODO!
-#        return load_eopatch(OOI(), filesystem, path, data=data, lazy_loading=lazy_loading)
+        return load_ooi(OOI(), filesystem, path, data=data, 
+                        lazy_loading=lazy_loading)
 
     def merge(self, *ooi, data=..., 
               time_dependent_op=None, timeless_op=None):
@@ -470,13 +517,13 @@ class OOI:
         :rtype: Dict[(DataType, str), object]
         """
         ## TODO!
-        ooi_content = merge_eopatches(self, *oois, data=data,
-                                          time_dependent_op=time_dependent_op, 
-                                          timeless_op=timeless_op)
+#        ooi_content = merge_eopatches(self, *oois, data=data,
+#                                          time_dependent_op=time_dependent_op, 
+#                                          timeless_op=timeless_op)
 
         merged_ooi = OOI()
-        for data, value in ooi_content.items():
-            merged_ooi[data] = value
+#        for data, value in ooi_content.items():
+#            merged_ooi[data] = value
 
         return merged_ooi
 
@@ -625,10 +672,9 @@ class _DataDict(dict):
         """Implements lazy loading."""
         value = super().__getitem__(ooi_name)
 
-        ## TODO!
-#        if isinstance(value, FeatureIO) and load:
-#            value = value.load()
-#            self[feature_name] = value
+        if isinstance(value, DataIO) and load:
+           value = value.load()
+           self[ooi_name] = value
 
         return value
 
@@ -645,9 +691,8 @@ class _DataDict(dict):
         
         :raises: ValueError
         """
-        ## TODO!
-#        if isinstance(value, FeatureIO):
-#            return value
+        if isinstance(value, DataIO):
+           return value
         if not hasattr(self, 'ndim'):  # Because of serialization/deserialization during multiprocessing
             return value
 
