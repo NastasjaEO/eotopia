@@ -1,0 +1,42 @@
+# Conda env config
+# ----------------
+
+# To create:
+#   $ conda env create -f environment.yml
+
+# To activate:
+#   $ conda activate eotopia-processing
+
+# To update:
+#   $ conda env update -f environment.yml
+
+# To remove:
+#   $ conda remove --name core --all -y
+
+---
+
+name: eotopia
+
+
+channels:
+    - defaults
+
+dependencies:
+
+    # conda dependencies
+    # Use single '=' signs!
+
+    - python=3.7
+    - pip=20.2.2
+    - libspatialindex
+    - matplotlib=3.0.3
+
+    - pip:
+
+          # pip requirements
+          # Use double '==' signs!
+          - sentinelhub==3.2.1
+          - scikit-learn==0.21.3
+          - scikit-image==0.18.1
+
+
