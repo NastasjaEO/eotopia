@@ -14,6 +14,7 @@ import numpy as np
 import geopandas as gpd
 
 from .data_types import DataType, OverwritePermission
+from .data_OOI_IO import save_ooi
 
 LOGGER = logging.getLogger(__name__)
 warnings.simplefilter('default', DeprecationWarning)
@@ -396,9 +397,9 @@ class OOI:
             # filesystem = get_filesystem(path, create=True)
             path = '/'
             
-            ## TODO!
-#           save_eopatch(self, filesystem, path, data=data, compress_level=compress_level,
-#                     overwrite_permission=OverwritePermission(overwrite_permission))
+            save_ooi(self, filesystem, path, data=data, 
+                        compress_level=compress_level,
+                        overwrite_permission=OverwritePermission(overwrite_permission))
 
     @staticmethod
     def load(path, data=..., lazy_loading=False, filesystem=None):

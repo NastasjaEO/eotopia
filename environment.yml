@@ -36,7 +36,6 @@ dependencies:
           # pip requirements
           # Use double '==' signs!
           - sentinelhub==3.2.1
-          - scikit-learn==0.21.3
-          - scikit-image==0.18.1
-
+          - geopandas==0.8.1
+          - fs==2.4.9
 
