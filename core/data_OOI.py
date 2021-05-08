@@ -33,7 +33,10 @@ from filesystem_utils import get_filesystem
 LOGGER = logging.getLogger(__name__)
 warnings.simplefilter('default', DeprecationWarning)
 
+MAX_DATA_REPR_LEN = 100
 
+
+@attr.s(repr=False, eq=False, kw_only=True)
 class OOI:
     """
     Object Of Interest
@@ -69,7 +72,7 @@ class OOI:
         super().__setattr__(key, value)
 
     @staticmethod
-    def _parse_feature_data_value(data_type, value):
+    def _parse_data_type_value(data_type, value):
         """ 
         Checks or parses value which will be assigned to a data type 
         attribute of `OOI`. 
@@ -179,10 +182,66 @@ class OOI:
         """
         return self.merge(other)
 
-    ## TODO!
-    # def __repr__(self):
-    # def _repr_value(value):
-    # def _repr_value_class(value):
+    def __repr__(self):
+        data_repr_list = ['{}('.format(self.__class__.__name__)]
+        for data_type in DataType:
+            content = self[data_type]
+
+            if isinstance(content, dict) and content:
+                content_str = '\n    '.\
+                    join(['{'] + ['{}: {}'.format(label, 
+                                                  self._repr_value(value))\
+                                          for label, value in
+                                                     sorted(content.items())]) + '\n  }'
+            else:
+                content_str = self._repr_value(content)
+            data_repr_list.append('{}: {}'.format(data_type.value, content_str))
+        return '\n  '.join(data_repr_list) + '\n)'
+
+    @staticmethod
+    def _repr_value(value):
+        """Creates a representation string for different types of data.
+
+        :param value: data in any type
+        :return: representation string
+        :rtype: str
+        """
+        if isinstance(value, np.ndarray):
+            return '{}(shape={}, dtype={})'.format(OOI._repr_value_class(value), 
+                                                   value.shape, value.dtype)
+
+        if isinstance(value, gpd.GeoDataFrame):
+            crs = CRS(value.crs).ogc_string() if value.crs else value.crs
+            return f'{OOI._repr_value_class(value)}(' \
+                   f'columns={list(value)}, ' \
+                   f'length={len(value)}, ' \
+                   f'crs={crs})'
+
+        if isinstance(value, (list, tuple, dict)) and value:
+            repr_str = str(value)
+            if len(repr_str) <= MAX_DATA_REPR_LEN:
+                return repr_str
+
+            bracket_str = '[{}]' if isinstance(value, list) else '({})'
+            if isinstance(value, (list, tuple)) and len(value) > 2:
+                repr_str = bracket_str.format('{}, ..., {}'.\
+                                        format(repr(value[0]), repr(value[-1])))
+
+            if len(repr_str) > MAX_DATA_REPR_LEN and isinstance(value, (list, tuple)) and len(value) > 1:
+                repr_str = bracket_str.format('{}, ...'.format(repr(value[0])))
+
+            if len(repr_str) > MAX_DATA_REPR_LEN:
+                repr_str = str(type(value))
+
+            return '{}, length={}'.format(repr_str, len(value))
+        return repr(value)
+
+    @staticmethod
+    def _repr_value_class(value):
+        """ A representation of a class of a given value
+        """
+        cls = value.__class__
+        return '.'.join([cls.__module__.split('.')[0], cls.__name__])
 
     def __copy__(self, data=...):
         """
@@ -650,13 +709,20 @@ class _DataDict(dict):
         """
         super().__init__()
 
+        self.data_type = data_type
+        self.ndim = self.data_type.ndim()
+        self.is_vector = self.data_type.is_vector()
+
+        for ooi_name, value in data_dict.items():
+            self[ooi_name] = value
+
     def __setitem__(self, ooi_name, value):
         """ 
         Before setting value to the dictionary it checks that value is of 
         correct type and dimension and tries to transform value in correct form.
         """
-        value = self._parse_feature_value(value)
-        self._check_feature_name(ooi_name)
+        value = self._parse_data_value(value)
+        self._check_data_name(ooi_name)
         super().__setitem__(ooi_name, value)
 
     def _check_data_name(self, ooi_name):

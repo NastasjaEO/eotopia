@@ -98,7 +98,7 @@ class DataType(Enum):
             return BBox
         return dict
 
-class DataFormat(Enum):
+class DataTypeSet:
     """ 
     A collection of immutable sets of data types, grouped together by 
     certain properties.
@@ -158,7 +158,7 @@ class DataFormat(Enum):
                                  DataType.LABEL_TIMELESS])
 
 
-class DataTypeSet(Enum):
+class DataFormat(Enum):
     """ Enum class for file formats used for saving and loading Data
     """
 
@@ -177,7 +177,7 @@ class DataTypeSet(Enum):
         """
         parts = filename.split('.')
         idx = len(parts) - 1
-        while DataFormat.is_file_format(parts[idx]):
+        while DataFormat().is_file_format(parts[idx]):
             parts[idx] = DataFormat(parts[idx])
             idx -= 1
         return ['.'.join(parts[:idx + 1])] + parts[idx + 1:]
