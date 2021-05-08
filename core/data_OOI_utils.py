@@ -5,6 +5,12 @@ Created on Fri May  7 22:23:59 2021
 @author: nasta
 """
 
+from collections import OrderedDict
+
+import sys
+sys.path.append("D:/Code/eotopia/core")
+from data_types import DataType, OverwritePermission, DataFormat
+
 
 class DataParser:
     """ 
@@ -16,6 +22,47 @@ class DataParser:
     it raises an error. The class is a generator therefore parsed data
     can be obtained by iterating over an instance of the class. 
     An `OOI` is given as a parameter of the generator.
+    
+    Supported input formats:
+    - Anything that exists in a given `OOI` is defined with `...`
+    - A data type describing all data of that type. 
+            Example: `DataType.DATA` or `DataType.BBOX`
+    - Single data as a tuple. 
+            Example: `(DataType.DATA, 'BANDS')`
+    - Single data as a tuple. 
+            Example: `(DataType.DATA, 'BANDS')`
+    - Single data as a tuple with new name. 
+            Example `(DataType.DATA, 'BANDS', 'NEW_BANDS')`
+    - A list of data (new names or not).
+            Example:
+                [
+                (DataType.DATA, 'BANDS'),
+                (DataType.MASK, 'CLOUD_MASK', 'NEW_CLOUD_MASK')
+                ]
+
+    - A dictionary with data types as keys and lists, sets, single data 
+        or `...` of data names as values.
+            Example:
+                {
+                DataType.DATA: ['S2-BANDS', 'L8-BANDS'],
+                DataType.MASK: {'IS_VALID', 'IS_DATA'},
+                DataType.MASK_TIMELESS: 'LULC',
+                DataType.TIMESTAMP: ...
+                }
+     - A dictionary with data types as keys and dictionaries, where data names 
+     are mapped into new names, as values. 
+             Example:
+                 {
+                DataType.DATA: {
+                    'S2-BANDS': 'INTERPOLATED_S2_BANDS',
+                    'L8-BANDS': 'INTERPOLATED_L8_BANDS',
+                    'NDVI': ...
+                }
+                }
+    Outputs of the generator:
+    - tuples in form of (data type, ooi name) if parameter `new_names=False`
+    - tuples in form of (data type, ooi name, new feature name) 
+        if parameter `new_names=True`
     """
 
     def __init__(self, data, new_names=False, 
@@ -52,3 +99,262 @@ class DataParser:
         :raises: ValueError
         
         """
+        self.data_collection = self._parse_data(data, new_names)
+        self.new_names = new_names
+        self.rename_function = rename_function
+        self.default_data_type = default_data_type
+        self.allowed_data_types = DataType\
+            if allowed_data_types is None else set(allowed_data_types)
+
+        if rename_function is None:
+            self.rename_function = self._identity_rename_function  # <- didn't use lambda function - it can't be pickled
+
+        if allowed_data_types is not None:
+            self._check_data_types()
+
+    def __call__(self, ooi=None):
+        return self._get_data(ooi)
+
+    def __iter__(self):
+        return self._get_data()
+
+    @staticmethod
+    def _parse_data(data, new_names):
+        """
+        Takes a collection of data structured in a various ways and 
+        parses them into one way.
+        If input format is not recognized it raises an error.
+        
+        :return: A collection of data
+        :rtype: collections.OrderedDict(DataType: collections.OrderedDict(str: str or Ellipsis) or Ellipsis)
+        :raises: ValueError
+        """
+        if isinstance(data, dict):
+            return DataParser._parse_dict(data, new_names)
+
+        if isinstance(data, list):
+            return DataParser._parse_list(data, new_names)
+
+        if isinstance(data, tuple):
+            return DataParser._parse_tuple(data, new_names)
+
+        if data is ...:
+            return OrderedDict([(data_type, ...) for data_type in DataType])
+
+        if isinstance(data, DataType):
+            return OrderedDict([(data, ...)])
+
+        if isinstance(data, str):
+            return OrderedDict([(None, OrderedDict([(data, ...)]))])
+
+        raise ValueError('Unknown format of input data: {}'.format(data))
+
+    @staticmethod
+    def _parse_dict(data, new_names):
+        """Helping function of `_parse_data` that parses a list."""
+        data_collection = OrderedDict()
+        for data_type, ooi_names in data.items():
+            try:
+                data_type = DataType(data_type)
+            except ValueError:
+                ValueError('Failed to parse {}, keys of the dictionary have to be instances '
+                           'of {}'.format(data, DataType.__name__))
+
+            data_collection[data_type] = data_collection.get(data_type, OrderedDict())
+
+            if ooi_names is ...:
+                data_collection[data_type] = ...
+
+            if data_type.has_dict() and data_collection[data_type] is not ...:
+                data_collection[data_type].\
+                    update(DataParser._parse_data_names(ooi_names, new_names))
+
+        return data_collection
+
+    @staticmethod
+    def _parse_list(data, new_names):
+        """Helping function of `_parse_features` that parses a list."""
+        data_collection = OrderedDict()
+        for dat in data:
+            if isinstance(dat, DataType):
+                data_collection[dat] = ...
+
+            elif isinstance(dat, (tuple, list)):
+                for data_type, data_dict\
+                    in DataParser._parse_tuple(dat, new_names).items():
+                    data_collection[data_type] =\
+                        data_collection.get(data_type, OrderedDict())
+
+                    if data_dict is ...:
+                        data_collection[data_type] = ...
+
+                    if data_collection[data_type] is not ...:
+                        data_collection[data_type].update(data_dict)
+            else:
+                raise ValueError('Failed to parse {}, expected a tuple'.\
+                                 format(dat))
+        return data_collection
+
+    @staticmethod
+    def _parse_tuple(data, new_names):
+        """Helping function of `_parse_features` that parses a tuple."""
+        name_idx = 1
+        try:
+            data_type = DataType(data[0])
+        except ValueError:
+            data_type = None
+            name_idx = 0
+
+        if data_type and not data_type.has_dict():
+            return OrderedDict([(data_type, ...)])
+        return OrderedDict([(data_type, 
+                             DataParser._parse_names_tuple(data[name_idx:], 
+                                                           new_names))])
+    @staticmethod
+    def _parse_data_names(ooi_names, new_names):
+        """Helping function of `_parse_data` that parses a collection of data names."""
+        if isinstance(ooi_names, set):
+            return DataParser._parse_names_set(ooi_names)
+
+        if isinstance(ooi_names, dict):
+            return DataParser._parse_names_dict(ooi_names)
+
+        if isinstance(ooi_names, (tuple, list)):
+            return DataParser._parse_names_tuple(ooi_names, new_names)
+
+        raise ValueError('Failed to parse {}, expected dictionary,\
+                         set or tuple'.format(ooi_names))
+
+    @staticmethod
+    def _parse_names_set(ooi_names):
+        """Helping function of `_parse_feature_names` that parses a set of feature names."""
+        data_collection = OrderedDict()
+        for ooi_name in ooi_names:
+            if isinstance(ooi_name, str):
+                data_collection[ooi_name] = ...
+            else:
+                raise ValueError('Failed to parse {}, expected string'.\
+                                 format(ooi_name))
+        return data_collection
+
+    @staticmethod
+    def _parse_names_dict(ooi_names):
+        """Helping function of `_parse_feature_names` that parses a dictionary of feature names."""
+        data_collection = OrderedDict()
+        for ooi_name, new_ooi_name in ooi_names.items():
+            if isinstance(ooi_name, str) and (isinstance(new_ooi_name, str) or
+                                                  new_ooi_name is ...):
+                data_collection[ooi_name] = new_ooi_name
+            else:
+                if not isinstance(ooi_name, str):
+                    raise ValueError('Failed to parse {},\
+                                     expected string'.format(ooi_name))
+                raise ValueError('Failed to parse {}, expected\
+                                 string or Ellipsis'.format(new_ooi_name))
+        return data_collection
+
+    @staticmethod
+    def _parse_names_tuple(ooi_names, new_names):
+        """Helping function of `_parse_feature_names` that parses a tuple or a list of feature names."""
+        for name in ooi_names:
+            if not isinstance(name, str) and name is not ...:
+                raise ValueError('Failed to parse {}, expected a string'.format(name))
+
+        if ooi_names[0] is ...:
+            return ...
+
+        if new_names:
+            if len(ooi_names) == 1:
+                return OrderedDict([(ooi_names[0], ...)])
+            if len(ooi_names) == 2:
+                return OrderedDict([(ooi_names[0], ooi_names[1])])
+            raise ValueError("Failed to parse {}, it should contain at\
+                             most two strings".format(ooi_names))
+
+        if ... in ooi_names:
+            return ...
+        return OrderedDict([(name, ...) for name in ooi_names])
+    
+    def _check_data_types(self):
+        """ 
+        Checks that data types are a subset of allowed data types. 
+        (`None` is handled
+        :raises: ValueError
+        """
+        if self.default_data_type is not None and\
+            self.default_data_type not in self.allowed_data_types:
+            raise ValueError('Default data type parameter must be one\
+                             of the allowed data types')
+
+        for data_type in self.data_collection:
+            if data_type is not None and data_type not in self.allowed_data_types:
+                raise ValueError('Data type has to be one of {}, but {} found'.\
+                                 format(self.allowed_data_types, data_type))
+
+    def _get_data(self, ooi=None):
+
+        """A generator of parsed data.
+        :param ooi: A given OOI
+        :type ooih: OOI or None
+        :return: One by one data
+        :rtype: tuple(DataType, str) or tuple(DataType, str, str)
+        """
+        for data_type, data_dict in self.data_collection.items():
+            if data_type is None and self.default_data_type is not None:
+                data_type = self.default_data_type
+
+            if data_type is None:
+                for ooi_name, new_ooi_name in data_dict.items():
+                    if ooi is None:
+                        yield self._return_data(..., ooi_name, new_ooi_name)
+                    else:
+                        found_data_type = self._find_feature_type(ooi_name, ooi)
+                        if found_data_type:
+                            yield self._return_data(found_data_type, 
+                                                    ooi_name, new_ooi_name)
+                        else:
+                            raise ValueError("Data with name '{}' does not\
+                                             exist among data of allowed data"
+                                             " types in given OOI.\
+                                                 Allowed datatypes are "
+                                             "{}".format(ooi_name, self.allowed_data_types))
+
+            elif data_dict is ...:
+                if not data_type.has_dict() or ooi is None:
+                    yield self._return_data(data_type, ...)
+                else:
+                    for ooi_name in ooi[data_type]:
+                        yield self._return_feature(data_type, ooi_name)
+            else:
+                for ooi_name, new_ooi_name in data_dict.items():
+                    if ooi is not None and ooi_name not in ooi[data_type]:
+                        raise ValueError('Data {} of type {} was not found in OOI'.\
+                                         format(ooi_name, data_type))
+                    yield self._return_data(data_type, ooi_name, new_ooi_name)
+
+    def _find_data_type(self, ooi_name, ooi):
+        """ 
+        Iterates over allowed data types of given OOI and tries to find a 
+        data type for which there exists data with given name
+        :return: A data type or `None` if such data type does not exist
+        :rtype: DataType or None
+        """
+        for data_type in self.allowed_data_types:
+            if data_type.has_dict() and ooi_name in ooi[data_type]:
+                return data_type
+        return None
+
+    def _return_data(self, data_type, ooi_name, new_ooi_name=...):
+        """ Helping function of `get_data`
+        """
+        if self.new_names:
+            return data_type, ooi_name, (self.rename_function(ooi_name)\
+                                         if new_ooi_name is ... else
+                                                new_ooi_name)
+        return data_type, ooi_name
+
+    @staticmethod
+    def _identity_rename_function(name):
+        return name
+
+

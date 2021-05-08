@@ -27,6 +27,8 @@ import sys
 sys.path.append("D:/Code/eotopia/core")
 from data_OOI_IO import save_ooi, load_ooi, DataIO
 from data_types import DataType, OverwritePermission
+from data_OOI_utils import DataParser
+
 sys.path.append("D:/Code/eotopia/utils")
 from filesystem_utils import get_filesystem
 
@@ -238,7 +240,8 @@ class OOI:
 
     @staticmethod
     def _repr_value_class(value):
-        """ A representation of a class of a given value
+        """ 
+        A representation of a class of a given value
         """
         cls = value.__class__
         return '.'.join([cls.__module__.split('.')[0], cls.__name__])
@@ -254,13 +257,11 @@ class OOI:
             data = ...
 
         new_ooi = OOI()
-        ## TODO!
-            # FeatureParser
-#        for data_type, ooi_name in FeatureParser(data)(self):
-#            if ooi_name is ...:
-#                new_ooi[data_type] = copy.copy(self[data_type])
-#            else:
-#                new_ooi[data_type][ooi_name] = self[data_type][ooi_name]
+        for data_type, ooi_name in DataParser(data)(self):
+            if ooi_name is ...:
+                new_ooi[data_type] = copy.copy(self[data_type])
+            else:
+                new_ooi[data_type][ooi_name] = self[data_type][ooi_name]
         return new_ooi
 
     def __deepcopy__(self, memo=None, data=...):
