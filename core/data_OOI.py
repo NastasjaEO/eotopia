@@ -28,6 +28,7 @@ sys.path.append("D:/Code/eotopia/core")
 from data_OOI_IO import save_ooi, load_ooi, DataIO
 from data_types import DataType, OverwritePermission
 from data_OOI_utils import DataParser, deep_eq
+from merge_OOI import merge_oois
 
 sys.path.append("D:/Code/eotopia/utils")
 from filesystem_utils import get_filesystem
@@ -542,7 +543,7 @@ class OOI:
         return load_ooi(OOI(), filesystem, path, data=data, 
                         lazy_loading=lazy_loading)
 
-    def merge(self, *ooi, data=..., 
+    def merge(self, *oois, data=..., 
               time_dependent_op=None, timeless_op=None):
         """ 
         Merge features of given OOIs into a new OOI
@@ -582,15 +583,13 @@ class OOI:
         :return: A dictionary with OOI data and values
         :rtype: Dict[(DataType, str), object]
         """
-        ## TODO!
-#        ooi_content = merge_eopatches(self, *oois, data=data,
-#                                          time_dependent_op=time_dependent_op, 
-#                                          timeless_op=timeless_op)
+        ooi_content = merge_oois(self, *oois, data=data,
+                                          time_dependent_op=time_dependent_op, 
+                                          timeless_op=timeless_op)
 
         merged_ooi = OOI()
-#        for data, value in ooi_content.items():
-#            merged_ooi[data] = value
-
+        for data, value in ooi_content.items():
+            merged_ooi[data] = value
         return merged_ooi
 
     def time_series(self, ref_date=None, scale_time=1):
