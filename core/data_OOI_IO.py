@@ -17,7 +17,12 @@ import geopandas as gpd
 
 from sentinelhub.os_utils import sys_is_windows
 
-from .data_types import DataType, DataFormat, OverwritePermission
+## TODO!
+# from .data_types import DataType, DataFormat, OverwritePermission
+
+import sys
+sys.path.append("D:/Code/eotopia/core")
+from data_types import DataType, OverwritePermission, DataFormat
 
 def save_ooi(ooi, filesystem, patch_location, data=..., 
              overwrite_permission=OverwritePermission.ADD_ONLY, 

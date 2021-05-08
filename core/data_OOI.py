@@ -18,9 +18,17 @@ import datetime
 
 from sentinelhub import BBox, CRS
 
-from .data_types import DataType, OverwritePermission
-from .data_OOI_IO import save_ooi, load_ooi, DataIO
-from .utils.filesystem_utils import get_filesystem
+## TODO!
+#from .data_types import DataType, OverwritePermission
+#from .data_OOI_IO import save_ooi, load_ooi, DataIO
+#from .utils.filesystem_utils import get_filesystem
+
+import sys
+sys.path.append("D:/Code/eotopia/core")
+from data_OOI_IO import save_ooi, load_ooi, DataIO
+from data_types import DataType, OverwritePermission
+sys.path.append("D:/Code/eotopia/utils")
+from filesystem_utils import get_filesystem
 
 LOGGER = logging.getLogger(__name__)
 warnings.simplefilter('default', DeprecationWarning)
