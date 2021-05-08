@@ -27,7 +27,7 @@ import sys
 sys.path.append("D:/Code/eotopia/core")
 from data_OOI_IO import save_ooi, load_ooi, DataIO
 from data_types import DataType, OverwritePermission
-from data_OOI_utils import DataParser
+from data_OOI_utils import DataParser, deep_eq
 
 sys.path.append("D:/Code/eotopia/utils")
 from filesystem_utils import get_filesystem
@@ -173,7 +173,6 @@ class OOI:
             return False
 
         for data_type in DataType:
-            ## TODO!
             if not deep_eq(self[data_type], other[data_type]):
                 return False
         return True
