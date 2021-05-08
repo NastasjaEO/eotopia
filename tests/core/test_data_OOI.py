@@ -33,12 +33,11 @@ class TestOOIDataTypes(unittest.TestCase):
 
     PATCH_FILENAME = 'D:/Code/eotopia/tests/testdata/TestOOI'
 
-    ## TODO!
-#    def test_loading_valid(self):
-#        eop = data_OOI.OOI.load(self.PATCH_FILENAME)
-#        repr_str = eop.__repr__()
-#        self.assertTrue(isinstance(repr_str, str) and len(repr_str) > 0,
-#                        msg='OOI __repr__ must return non-empty string')
+    def test_loading_valid(self):
+        eop = data_OOI.OOI.load(self.PATCH_FILENAME)
+        repr_str = eop.__repr__()
+        self.assertTrue(isinstance(repr_str, str) and len(repr_str) > 0,
+                        msg='OOI __repr__ must return non-empty string')
 
     def test_numpy_data_types(self):
         eop = data_OOI.OOI()
@@ -166,12 +165,10 @@ class TestOOI(unittest.TestCase):
                         msg="Data numpy array not stored")
 
     ## TODO!
-    # def test_rename_data(self):
-    #     bands = np.arange(2 * 3 * 3 * 2).reshape(2, 3, 3, 2)
-
-    #     eop = data_OOI.OOI()
-    #     eop.data['bands'] = bands
-
+    def test_rename_data(self):
+         bands = np.arange(2 * 3 * 3 * 2).reshape(2, 3, 3, 2)
+         eop = data_OOI.OOI()
+         eop.data['bands'] = bands
     #     eop.rename_feature(data_types.DataType.DATA, 'bands', 'new_bands')
     #     self.assertTrue('new_bands' in eop.data)
 
@@ -180,9 +177,9 @@ class TestOOI(unittest.TestCase):
         bands = np.arange(2 * 3 * 3 * 2).reshape(2, 3, 3, 2)
 
         eop = data_OOI.OOI()
-        # eop.data['bands'] = bands
-        # with self.assertRaises(BaseException,
-        #                        msg='Should fail because there is no `missing_bands` feature in the EOPatch.'):
+        eop.data['bands'] = bands
+#        with self.assertRaises(BaseException,
+#                               msg='Should fail because there is no `missing_bands` feature in the EOPatch.'):
         #     eop.rename_feature(data_types.DataType.DATA, 'missing_bands', 'new_bands')
 
     def test_get_feature(self):
