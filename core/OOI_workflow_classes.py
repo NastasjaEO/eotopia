@@ -147,4 +147,183 @@ class OOIWorkflow:
         :return: A list of topologically ordered dependecies
         :rtype: list(Dependency)
         """
+        in_degrees = dict(dag.get_indegrees())
 
+        independent_vertices =\
+            collections.deque([vertex for vertex in dag\
+                               if dag.get_indegree(vertex) == 0])
+        topological_order = []
+        while independent_vertices:
+            v_vertex = independent_vertices.popleft()
+            topological_order.append(v_vertex)
+
+            for u_vertex in dag[v_vertex]:
+                in_degrees[u_vertex] -= 1
+                if in_degrees[u_vertex] == 0:
+                    independent_vertices.append(u_vertex)
+
+        if len(topological_order) != len(dag):
+            raise CyclicDependencyError('Tasks do not form an acyclic graph')
+
+        return topological_order
+
+    def execute(self, input_args=None, monitor=False):
+        """ 
+        Executes the workflow
+        
+        :param input_args: External input arguments to the workflow. 
+            They have to be in a form of a dictionary where each key is an 
+            OOITask used in the workflow and each value is a dictionary or a 
+            tuple of arguments.
+        :type input_args: dict(OOITask: dict(str: object) or tuple(object))
+        :param monitor: If True workflow execution will be monitored
+        :type monitor: bool
+        :return: An immutable mapping containing results of terminal tasks
+        :rtype: WorkflowResults
+        """
+        out_degs = dict(self.dag.get_outdegrees())
+
+        input_args = self.parse_input_args(input_args)
+
+        ## TODO!
+#        results = WorkflowResults(self._execute_tasks(input_args=input_args, 
+#                   out_degs=out_degs, monitor=monitor))
+#        LOGGER.debug('Workflow finished with %s', repr(results))
+#        return results
+
+    @staticmethod
+    def parse_input_args(input_args):
+        """ 
+        Parses OOIWorkflow input arguments provided by user and raises an 
+        error if something is wrong. This is done automatically in the process 
+        of workflow execution
+        """
+        input_args = input_args if input_args else {}
+        for task, args in input_args.items():
+            if not isinstance(task, OOITask):
+                raise ValueError('Invalid input argument {},\
+                                 should be an instance of EOTask'.format(task))
+
+            if not isinstance(args, (tuple, dict)):
+                raise ValueError('Execution input arguments of each task\
+                                 should be a dictionary or a tuple, for task '
+                                 '{} got arguments of type {}'.\
+                                     format(task.__class__.__name__, type(args)))
+        return input_args
+
+    def _execute_tasks(self, *, input_args, out_degs, monitor):
+        """ 
+        Executes tasks comprising the workflow in the predetermined order
+        
+        :param input_args: External input arguments to the workflow.
+        :type input_args: Dict
+        :param out_degs: Dictionary mapping vertices (task IDs) to their 
+            out-degrees. (The out-degree equals the number
+        of tasks that depend on this task.)
+        :type out_degs: Dict
+        :return: A dictionary mapping dependencies to task results
+        :rtype: dict
+        """
+        intermediate_results = {}
+
+        ## TODO!
+        # for dep in self.ordered_dependencies:
+        #     result = self._execute_task(dependency=dep,
+        #                                 input_args=input_args,
+        #                                 intermediate_results=intermediate_results,
+        #                                 monitor=monitor)
+
+        #     intermediate_results[dep] = result
+
+        #     self._relax_dependencies(dependency=dep,
+        #                              out_degrees=out_degs,
+        #                              intermediate_results=intermediate_results)
+
+        # return intermediate_results
+
+    def _relax_dependencies(self, *, dependency, out_degrees, intermediate_results):
+        """ 
+        Relaxes dependencies incurred by ``task_id``. 
+        After the task with ID ``task_id`` has been successfully executed, 
+        all the tasks it depended on are updated. 
+        If ``task_id`` was the last remaining dependency of a task
+        ``t`` then ``t``'s result is removed from memory and, 
+        depending on ``remove_intermediate``, from disk.
+        
+        :param dependency: A workflow dependency
+        :type dependency: Dependency
+        :param out_degrees: Out-degrees of tasks
+        :type out_degrees: dict
+        :param intermediate_results: The dictionary containing the intermediate results (needed by tasks that have yet
+        to be executed) of the already-executed tasks
+        :type intermediate_results: dict
+        """
+        ## TODO!
+        # current_task = dependency.task
+        # for input_task in dependency.inputs:
+        #     dep = self.uuid_dict[input_task.private_task_config.uuid]
+        #     out_degrees[dep] -= 1
+
+        #     if out_degrees[dep] == 0:
+        #         LOGGER.debug("Removing intermediate result for %s", 
+        #                      current_task.__class__.__name__)
+        #         del intermediate_results[dep]
+
+    def get_tasks(self):
+        """ 
+        Returns an ordered dictionary {task_name: task} of all tasks within 
+        this workflow
+        
+        :return: Ordered dictionary with key being task_name (str) and 
+            an instance of a corresponding task from this workflow. 
+            The order of tasks is the same as in which they will be executed.
+        :rtype: OrderedDict
+        """
+        task_dict = collections.OrderedDict()
+        ## TODO!
+        # for dep in self.ordered_dependencies:
+        #     task_name = dep.name
+
+        #     if task_name in task_dict:
+        #         count = 0
+        #         while dep.get_custom_name(count) in task_dict:
+        #             count += 1
+
+        #         task_name = dep.get_custom_name(count)
+        #     task_dict[task_name] = dep.task
+        # return task_dict
+
+    def get_dot(self):
+        """ 
+        Generates the DOT description of the underlying computational graph
+        
+        :return: The DOT representation of the computational graph
+        :rtype: Digraph
+        """
+        ## TODO!
+#        visualization = self._get_visualization()
+#        return visualization.get_dot()
+
+    def dependency_graph(self, filename=None):
+        """ 
+        Visualize the computational graph
+        
+        :param filename: Filename of the output image together with 
+            file extension. Supported formats: `png`, `jpg`,
+            `pdf`, ... . Check `graphviz` Python package for more options
+        :type filename: str
+        :return: The DOT representation of the computational graph, with 
+            some more formatting
+        :rtype: Digraph
+        """
+#        visualization = self._get_visualization()
+#        return visualization.dependency_graph(filename=filename)
+
+    def _get_visualization(self):
+        """ 
+        Helper method which provides OOIWorkflowVisualization object
+        """
+        ## TODO
+        # pylint: disable=import-outside-toplevel,raise-missing-from
+        #from eolearn.visualization import EOWorkflowVisualization
+        #return EOWorkflowVisualization(self)

@@ -1257,6 +1257,7 @@ class DataParser:
     def _identity_rename_function(name):
         return name
 
+#############################################################################
 def walk_filesystem(filesystem, patch_location, data=...):
     """ 
     Recursively reads a patch_location and returns yields tuples of 
