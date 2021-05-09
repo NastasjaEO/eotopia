@@ -137,8 +137,11 @@ class OOIWorkflow:
 
     @staticmethod
     def _schedule_dependencies(dag):
-        """ Computes an ordering < of tasks so that for any two tasks t and t' we have that if t depends on t' then
-        t' < t. In words, all dependencies of a task precede the task in this ordering.
+        """ 
+        Computes an ordering < of tasks so that for any two tasks t and t' 
+        we have that if t depends on t' then t' < t. 
+        In words, all dependencies of a task precede the task in this ordering.
+        
         :param dag: A directed acyclic graph representing dependencies between tasks.
         :type dag: DirectedGraph
         :return: A list of topologically ordered dependecies

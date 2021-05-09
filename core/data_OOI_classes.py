@@ -13,8 +13,11 @@ import pickle
 import gzip
 import fs
 from fs.tempfs import TempFS
+import concurrent.futures
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+
+from sentinelhub.os_utils import sys_is_windows
 
 import numpy as np
 import geopandas as gpd
@@ -26,15 +29,16 @@ from sentinelhub import BBox, CRS
 
 ## TODO!
 #from .data_types import DataType, OverwritePermission
-#from .data_OOI_IO import save_ooi, load_ooi, DataIO
-#from .utils.filesystem_utils import get_filesystem
 
 import sys
 sys.path.append("D:/Code/eotopia/core")
-from data_OOI_IO import save_ooi, load_ooi
+from data_OOI_IO import (walk_data_type_folder, walk_main_folder, 
+                         _check_add_only_permission, _check_case_matching)
 from data_types import DataType, OverwritePermission, DataFormat
 from data_OOI_utils import deep_eq
-from merge_OOI import merge_oois
+from data_OOI_merge import (_parse_operation, _select_meta_info_data,
+                            _merge_timestamps, _merge_time_dependent_raster_obj,
+                            _merge_timeless_raster_obj, _merge_vector_obj)
 
 sys.path.append("D:/Code/eotopia/utils")
 from filesystem_utils import get_filesystem
@@ -1253,4 +1257,196 @@ class DataParser:
     def _identity_rename_function(name):
         return name
 
+def walk_filesystem(filesystem, patch_location, data=...):
+    """ 
+    Recursively reads a patch_location and returns yields tuples of 
+    (data_type, ooi_name, file_path)
+    """
+    existing_data = defaultdict(dict)
+
+    for ftype, fname, path in walk_main_folder(filesystem, patch_location):
+        existing_data[ftype][fname] = path
+
+    returned_meta_data = set()
+    queried_data = set()
+
+    for ftype, fname in DataParser(data):
+        if fname is ... and not existing_data[ftype]:
+            continue
+
+        if ftype.is_meta():
+            if ftype in returned_meta_data:
+                continue
+            fname = ...
+            returned_meta_data.add(ftype)
+
+        elif ftype not in queried_data and (fname is ...\
+                                            or fname not in existing_data[ftype]):
+            queried_data.add(ftype)
+            if ... not in existing_data[ftype]:
+                raise IOError('There are no data of type {} in saved OOI'.\
+                              format(ftype))
+
+            for ooi_name, path in walk_data_type_folder(filesystem, 
+                    existing_data[ftype][...]):
+                existing_data[ftype][ooi_name] = path
+
+        if fname not in existing_data[ftype]:
+            raise IOError('Data {} does not exist in saved OOI'.\
+                          format((ftype, fname)))
+
+        if fname is ... and not ftype.is_meta():
+            for ooi_name, path in existing_data[ftype].items():
+                if ooi_name is not ...:
+                    yield ftype, ooi_name, path
+        else:
+            yield ftype, fname, existing_data[ftype][fname]
+
+def walk_ooi(ooi, patch_location, data=...):
+    """ 
+    Recursively reads a patch_location and returns yields tuples of 
+    (data_type, ooi_name, file_path)
+    """
+    returned_meta_data = set()
+    for ftype, fname in DataParser(data)(ooi):
+        name_basis = fs.path.combine(patch_location, ftype.value)
+        if ftype.is_meta():
+            if ooi[ftype] and ftype not in returned_meta_data:
+                yield ftype, ..., name_basis
+                returned_meta_data.add(ftype)
+        else:
+            yield ftype, fname, fs.path.combine(name_basis, fname)
+
+def merge_oois(*oois, data=..., time_dependent_op=None, timeless_op=None):
+    """ 
+    Merge data of given OOI into a new OOI
+    
+    :param ooi: Any number of OOIs to be merged together
+    :type ooi: OOI
+    :param data: A collection of data to be merged together. 
+        By default all data will be merged.
+    :type data: object
+    :param time_dependent_op: An operation to be used to join data for any 
+            time-dependent raster data. Before joining time slices of all arrays 
+            will be sorted. Supported options are:
+        - None (default): If time slices with matching timestamps have the same 
+            values, take one. Raise an error otherwise.
+        - 'concatenate': Keep all time slices, even the ones with matching timestamps
+        - 'min': Join time slices with matching timestamps by taking 
+            minimum values. Ignore NaN values.
+        - 'max': Join time slices with matching timestamps by taking 
+            maximum values. Ignore NaN values.
+        - 'mean': Join time slices with matching timestamps by taking 
+            mean values. Ignore NaN values.
+        - 'median': Join time slices with matching timestamps by taking 
+            median values. Ignore NaN values.
+    :type time_dependent_op: str or Callable or None
+    :param timeless_op: An operation to be used to join data for any timeless 
+        raster data. Supported options are:
+        - None (default): If arrays are the same, take one. Raise an error otherwise.
+        - 'concatenate': Join arrays over the last (i.e. bands) dimension
+        - 'min': Join arrays by taking minimum values. Ignore NaN values.
+        - 'max': Join arrays by taking maximum values. Ignore NaN values.
+        - 'mean': Join arrays by taking mean values. Ignore NaN values.
+        - 'median': Join arrays by taking median values. Ignore NaN values.
+    :type timeless_op: str or Callable or None
+    :return: A dictionary with OOI dataand values
+    :rtype: Dict[(DataType, str), object]
+    """
+    reduce_timestamps = time_dependent_op != 'concatenate'
+    time_dependent_op = _parse_operation(time_dependent_op, is_timeless=False)
+    timeless_op = _parse_operation(timeless_op, is_timeless=True)
+
+    all_data = {dat for ooi in oois for dat in DataParser(data)(ooi)}
+    ooi_content = {}
+
+    timestamps, sort_mask, split_mask = _merge_timestamps(oois, reduce_timestamps)
+    ooi_content[DataType.TIMESTAMP] = timestamps
+
+    for dat_item in all_data:
+        data_type, ooi_name = dat_item
+
+        if data_type.is_raster():
+            if data_type.is_time_dependent():
+                ooi_content[dat_item] = _merge_time_dependent_raster_obj(
+                    oois, dat_item, time_dependent_op, sort_mask, split_mask)
+            else:
+                 ooi_content[dat_item] =\
+                     _merge_timeless_raster_obj(oois, dat_item,timeless_op)
+
+        if data_type.is_vector():
+            ooi_content[dat_item] = _merge_vector_obj(oois, dat_item)
+
+        if data_type is DataType.META_INFO:
+            ooi_content[dat_item] = _select_meta_info_data(oois, ooi_name)
+
+        ## TODO!
+#        if data_type is DataType.BBOX:
+#            ooi_content[dat_item] = _get_common_bbox(oois)
+
+    return ooi_content
+
+
+def save_ooi(ooi, filesystem, patch_location, data=..., 
+             overwrite_permission=OverwritePermission.ADD_ONLY, 
+             compress_level=0):
+    """ 
+    A utility function used by OOI.save method
+    """
+    data_exists = filesystem.exists(patch_location)
+
+    if overwrite_permission is OverwritePermission.OVERWRITE_DATA and data_exists:
+        filesystem.removetree(patch_location)
+        if patch_location != '/':
+            patch_exists = False
+
+    if not patch_exists:
+        filesystem.makedirs(patch_location, recreate=True)
+
+    ooi_data = list(walk_ooi(ooi, patch_location, data))
+
+    if overwrite_permission is OverwritePermission.ADD_ONLY or \
+        (sys_is_windows()\
+         and overwrite_permission is OverwritePermission.OVERWRITE_FEATURES):
+        fs_data = list(walk_filesystem(filesystem, patch_location))
+    else:
+        fs_data = []
+
+    _check_case_matching(ooi_data, fs_data)
+
+    if overwrite_permission is OverwritePermission.ADD_ONLY:
+        _check_add_only_permission(ooi_data, fs_data)
+
+    ftype_folder_map = {(ftype, fs.path.dirname(path))\
+                        for ftype, _, path in ooi_data if not ftype.is_meta()}
+
+    for ftype, folder in ftype_folder_map:
+        if not filesystem.exists(folder):
+            filesystem.makedirs(folder, recreate=True)
+
+    data_to_save = ((DataIO(filesystem, path),
+                         ooi[(ftype, fname)],
+                         DataFormat.NPY if ftype.is_raster() else DataFormat.PICKLE,
+                         compress_level) for ftype, fname, path in ooi_data)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # The following is intentionally wrapped in a list in order to get 
+        # back potential exceptions
+        list(executor.map(lambda params: params[0].save(*params[1:]), data_to_save))
+
+def load_ooi(ooi, filesystem, patch_location, data=..., lazy_loading=False):
+    """ 
+    A utility function used by OOI.load method
+    """
+    data_list = list(walk_filesystem(filesystem, patch_location, data))
+    loading_data = [DataIO(filesystem, path) for _, _, path in data_list]
+
+    if not lazy_loading:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            loading_data = executor.map(lambda loader: loader.load(), loading_data)
+
+    for (ftype, fname, _), value in zip(data_list, loading_data):
+        ooi[(ftype, fname)] = value
+    
+    return ooi
 
