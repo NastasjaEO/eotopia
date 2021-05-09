@@ -65,12 +65,9 @@ class OOIWorkflow:
                           DeprecationWarning, stacklevel=2)
         
         self.dependencies = self._parse_dependencies(dependencies, task_names)
-        ## TODO
-#        self.uuid_dict = self._set_task_uuid(self.dependencies)
-        ## TODO
-#        self.dag = self.create_dag(self.dependencies)
-        ## TODO
-#        self.ordered_dependencies = self._schedule_dependencies(self.dag)
+        self.uuid_dict = self._set_task_uuid(self.dependencies)
+        self.dag = self.create_dag(self.dependencies)
+        self.ordered_dependencies = self._schedule_dependencies(self.dag)
 
     @staticmethod
     def _parse_dependencies(dependencies, task_names):
@@ -103,13 +100,11 @@ class OOIWorkflow:
         uuid_dict = {}
         for dep in dependencies:
             task = dep.task
-            ## TODO!
-            # if task.private_task_config.uuid in uuid_dict:
-            #     raise ValueError('OOIWorkflow cannot execute the same instance of EOTask multiple times')
+            if task.private_task_config.uuid in uuid_dict:
+                raise ValueError('OOIWorkflow cannot execute the same instance of EOTask multiple times')
 
-            # task.private_task_config.uuid = self.id_gen.get_next()
-            # uuid_dict[task.private_task_config.uuid] = dep
-
+            task.private_task_config.uuid = self.id_gen.get_next()
+            uuid_dict[task.private_task_config.uuid] = dep
         return uuid_dict
 
     def create_dag(self, dependencies):
@@ -122,17 +117,18 @@ class OOIWorkflow:
         :rtype: DirectedGraph
         """
         dag = DirectedGraph()
-        ## TODO!
-        # for dep in dependencies:
-        #     for vertex in dep.inputs:
-        #         task_uuid = vertex.private_task_config.uuid
-        #         if task_uuid not in self.uuid_dict:
-        #             raise ValueError('Task {}, which is an input of a task {}, is not part of the defined '
-        #                              'workflow'.format(vertex.__class__.__name__, dep.name))
-        #         dag.add_edge(self.uuid_dict[task_uuid], dep)
-        #     if not dep.inputs:
-        #         dag.add_vertex(dep)
-        # return dag
+        for dep in dependencies:
+            for vertex in dep.inputs:
+                task_uuid = vertex.private_task_config.uuid
+                if task_uuid not in self.uuid_dict:
+                     raise ValueError('Task {}, which is an input of a\
+                                      task {}, is not part of the defined '
+                                     'workflow'.\
+                                    format(vertex.__class__.__name__, dep.name))
+                dag.add_edge(self.uuid_dict[task_uuid], dep)
+            if not dep.inputs:
+                dag.add_vertex(dep)
+        return dag
 
     @staticmethod
     def _schedule_dependencies(dag):
@@ -184,11 +180,10 @@ class OOIWorkflow:
 
         input_args = self.parse_input_args(input_args)
 
-        ## TODO!
-#        results = WorkflowResults(self._execute_tasks(input_args=input_args, 
-#                   out_degs=out_degs, monitor=monitor))
-#        LOGGER.debug('Workflow finished with %s', repr(results))
-#        return results
+        results = WorkflowResults(self._execute_tasks(input_args=input_args, 
+                   out_degs=out_degs, monitor=monitor))
+        LOGGER.debug('Workflow finished with %s', repr(results))
+        return results
 
     @staticmethod
     def parse_input_args(input_args):
@@ -452,7 +447,74 @@ class Dependency:
             return '{}_{}'.format(self.name, number)
         return self.name
 
+class WorkflowResults(collections.abc.Mapping):
+    """ 
+    The result of a workflow is an (immutable) dictionary mapping 
+    [1] from OOITasks to results of the workflow.
+    When an OOITask is passed as an index, its UUID, assigned during 
+    workflow execution, is used as the key 
+    (as opposed to the result of invoking __repr__ on the OOI task). 
+    This ensures that indexing by task works even after pickling,
+    and makes dealing with checkpoints more convenient.
+    
+    [1] https://docs.python.org/3.6/library/collections.abc.html#collections-abstract-base-classes
+    """
+    def __init__(self, results):
+        self._result = results
+        self._uuid_dict = {dep.task.private_task_config.uuid: dep for dep in results}
 
+    def __getitem__(self, item):
+        if isinstance(item, OOITask):
+            item = self._uuid_dict[item.private_task_config.uuid]
+        return self._result[item]
 
+    def __len__(self):
+        return len(self._result)
+
+    def __iter__(self):
+        return iter(self._result)
+
+    def __contains__(self, item):
+        if isinstance(item, OOITask):
+            item = self._uuid_dict.get(item.private_task_config.uuid, item)
+        return item in self._result
+
+    def __eq__(self, other):
+        return self._result == other
+
+    def __ne__(self, other):
+        return self._result != other
+
+    def keys(self):
+        """ Returns dictionary keys """
+        return {dep.task: None for dep in self._result}.keys()
+
+    def values(self):
+        """ Returns dictionary values """
+        return self._result.values()
+
+    def items(self):
+        """ Returns dictionary items """
+        return {dep.task: value for dep, value in self._result.items()}.items()
+
+    def get(self, key, default=None):
+        """ Dictionary get method """
+        if isinstance(key, OOITask):
+            key = self._uuid_dict[key.private_task_config.uuid]
+        return self._result.get(key, default)
+
+    def ooi(self):
+        """ Return the OOI from the workflow result """
+        return list(self.values())[-1]
+
+    def __repr__(self):
+        repr_list = ['{}('.format(self.__class__.__name__)]
+
+        for _, dep in self._uuid_dict.items():
+            result_repr = repr(self._result[dep]).replace('\n', '\n    ')
+            dependency_repr = '{}({}):\n    {}'.\
+                format(Dependency.__name__, dep.name, result_repr)
+            repr_list.append(dependency_repr)
+        return '\n  '.join(repr_list) + '\n)'
 
 

@@ -13,6 +13,9 @@ from .data_OOI_utils import deep_eq, constant_pad, get_common_timestamps
 from .data_mask_utils import negate_mask
 from .data_bands_utils import bgr_to_rgb
 
+from .OOI_task_classes import OOITask, CompositeTask
+from .OOI_workflow_classes import OOIWorkflow, LinearWorkflow, Dependency
+
 from eotopia.utils.filesystem_utils import get_filesystem
 
 __version__ = '0.0.1'
