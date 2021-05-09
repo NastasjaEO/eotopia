@@ -20,7 +20,7 @@ import datetime
 
 import sys
 sys.path.append("D:/Code/eotopia/core")
-from data_OOI_classes import DataParser
+from data_OOI_utilities import DataParser
 
 LOGGER = logging.getLogger(__name__)
 

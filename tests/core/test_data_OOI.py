@@ -23,7 +23,7 @@ from sentinelhub import BBox, CRS
 
 import sys
 sys.path.append("D:/Code/eotopia/core")
-import data_OOI_classes
+import data_OOI_utilities
 import data_types
 
 logging.basicConfig(level=logging.DEBUG)
@@ -33,13 +33,13 @@ class TestOOIDataTypes(unittest.TestCase):
     PATCH_FILENAME = 'D:/Code/eotopia/tests/testdata/TestOOI'
 
     def test_loading_valid(self):
-        eop = data_OOI_classes.OOI.load(self.PATCH_FILENAME)
+        eop = data_OOI_utilities.OOI.load(self.PATCH_FILENAME)
         repr_str = eop.__repr__()
         self.assertTrue(isinstance(repr_str, str) and len(repr_str) > 0,
                         msg='OOI __repr__ must return non-empty string')
 
     def test_numpy_data_types(self):
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
 
         data_examples = []
         for size in range(6):
@@ -61,7 +61,7 @@ class TestOOIDataTypes(unittest.TestCase):
                                  type of data'.format(data_type))
 
     def test_vector_data_types(self):
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
 
         invalid_entries = [
             {}, [], 0, None
@@ -92,7 +92,7 @@ class TestOOIDataTypes(unittest.TestCase):
             eop.vector['TEST'] = geo_test
 
     def test_bbox_data_type(self):
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
         invalid_entries = [
             0, list(range(4)), tuple(range(5)), {}, set(), [1, 2, 4, 3, 4326, 3],\
                 'BBox'
@@ -104,7 +104,7 @@ class TestOOIDataTypes(unittest.TestCase):
                 eop.bbox = entry
 
     def test_timestamp_data_type(self):
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
         invalid_entries = [
             [datetime.datetime(2017, 1, 1, 10, 4, 7), None, 
                  datetime.datetime(2017, 1, 11, 10, 3, 51)],
@@ -128,14 +128,14 @@ class TestOOIDataTypes(unittest.TestCase):
             eop.timestamp = entry
 
     def test_invalid_characters(self):
-        eopatch = data_OOI_classes.OOI()
+        eopatch = data_OOI_utilities.OOI()
 
         with self.assertRaises(ValueError):
             eopatch.data_timeless['mask.npy'] = np.arange(3 * 3 * 2).reshape(3, 3, 2)
 
     ## TODO!
     def test_repr_no_crs(self):
-        eop = data_OOI_classes.OOI.load(self.PATCH_FILENAME)
+        eop = data_OOI_utilities.OOI.load(self.PATCH_FILENAME)
         eop.vector_timeless["LULC"].crs = None
         repr_str = eop.__repr__()
         self.assertTrue(isinstance(repr_str, str) and len(repr_str) > 0,
@@ -148,7 +148,7 @@ class TestOOI(unittest.TestCase):
 
     def test_add_data(self):
         bands = np.arange(2*3*3*2).reshape(2, 3, 3, 2)
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
         eop.data['bands'] = bands
 
         self.assertTrue(np.array_equal(eop.data['bands'], bands), 
@@ -157,7 +157,7 @@ class TestOOI(unittest.TestCase):
     def test_simplified_data_operations(self):
         bands = np.arange(2 * 3 * 3 * 2).reshape(2, 3, 3, 2)
         data = data_types.DataType.DATA, 'TEST-BANDS'
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
 
         eop[data] = bands
         self.assertTrue(np.array_equal(eop[data], bands), 
@@ -166,7 +166,7 @@ class TestOOI(unittest.TestCase):
     ## TODO!
     def test_rename_data(self):
          bands = np.arange(2 * 3 * 3 * 2).reshape(2, 3, 3, 2)
-         eop = data_OOI_classes.OOI()
+         eop = data_OOI_utilities.OOI()
          eop.data['bands'] = bands
     #     eop.rename_feature(data_types.DataType.DATA, 'bands', 'new_bands')
     #     self.assertTrue('new_bands' in eop.data)
@@ -175,7 +175,7 @@ class TestOOI(unittest.TestCase):
     def test_rename_data_missing(self):
         bands = np.arange(2 * 3 * 3 * 2).reshape(2, 3, 3, 2)
 
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
         eop.data['bands'] = bands
 #        with self.assertRaises(BaseException,
 #                               msg='Should fail because there is no `missing_bands` feature in the EOPatch.'):
@@ -184,7 +184,7 @@ class TestOOI(unittest.TestCase):
     def test_get_feature(self):
         bands = np.arange(2*3*3*2).reshape(2, 3, 3, 2)
 
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
         eop.data['bands'] = bands
         eop_bands = eop.get_feature(data_types.DataType.DATA, 'bands')
         self.assertTrue(np.array_equal(eop_bands, bands), 
@@ -194,7 +194,7 @@ class TestOOI(unittest.TestCase):
         bands = np.arange(2*3*3*2).reshape(2, 3, 3, 2)
         names = ['bands1', 'bands2', 'bands3']
 
-        eop = data_OOI_classes.OOI()
+        eop = data_OOI_utilities.OOI()
         eop.add_feature(data_types.DataType.DATA, names[0], bands)
         eop.data[names[1]] = bands
         eop[data_types.DataType.DATA][names[2]] = bands
@@ -214,44 +214,44 @@ class TestOOI(unittest.TestCase):
                              "OOI".format(ooi_name))
 
     def test_concatenate(self):
-        eop1 = data_OOI_classes.OOI()
+        eop1 = data_OOI_utilities.OOI()
         bands1 = np.arange(2*3*3*2).reshape(2, 3, 3, 2)
         eop1.data['bands'] = bands1
 
-        eop2 = data_OOI_classes.OOI()
+        eop2 = data_OOI_utilities.OOI()
         bands2 = np.arange(3*3*3*2).reshape(3, 3, 3, 2)
         eop2.data['bands'] = bands2
 
-        eop = data_OOI_classes.OOI.concatenate(eop1, eop2)
+        eop = data_OOI_utilities.OOI.concatenate(eop1, eop2)
         self.assertTrue(np.array_equal(eop.data['bands'], 
                                        np.concatenate((bands1, bands2), axis=0)),
                             msg="Array mismatch")
 
     def test_concatenate_different_key(self):
-        eop1 = data_OOI_classes.OOI()
+        eop1 = data_OOI_utilities.OOI()
         bands1 = np.arange(2*3*3*2).reshape(2, 3, 3, 2)
         eop1.data['bands'] = bands1
 
-        eop2 = data_OOI_classes.OOI()
+        eop2 = data_OOI_utilities.OOI()
         bands2 = np.arange(3*3*3*2).reshape(3, 3, 3, 2)
         eop2.data['measurements'] = bands2
         
-        eop = data_OOI_classes.OOI.concatenate(eop1, eop2)
+        eop = data_OOI_utilities.OOI.concatenate(eop1, eop2)
         self.assertTrue('bands' in eop.data and 'measurements' in eop.data,
                          'Failed to concatenate different data')
 
     def test_concatenate_timeless(self):
-        eop1 = data_OOI_classes.OOI()
+        eop1 = data_OOI_utilities.OOI()
         mask1 = np.arange(3*3*2).reshape(3, 3, 2)
         eop1.data_timeless['mask1'] = mask1
         eop1.data_timeless['mask'] = 5 * mask1
 
-        eop2 = data_OOI_classes.OOI()
+        eop2 = data_OOI_utilities.OOI()
         mask2 = np.arange(3*3*2).reshape(3, 3, 2)
         eop2.data_timeless['mask2'] = mask2
         eop2.data_timeless['mask'] = 5 * mask1  # add mask1 to eop2
 
-        eop = data_OOI_classes.OOI.concatenate(eop1, eop2)
+        eop = data_OOI_utilities.OOI.concatenate(eop1, eop2)
 
         for name in ['mask', 'mask1', 'mask2']:
             self.assertTrue(name in eop.data_timeless)
@@ -261,21 +261,21 @@ class TestOOI(unittest.TestCase):
     def test_concatenate_missmatched_timeless(self):
         mask = np.arange(3*3*2).reshape(3, 3, 2)
 
-        eop1 = data_OOI_classes.OOI()
+        eop1 = data_OOI_utilities.OOI()
         eop1.data_timeless['mask'] = mask
         eop1.data_timeless['nask'] = 3 * mask
 
-        eop2 = data_OOI_classes.OOI()
+        eop2 = data_OOI_utilities.OOI()
         eop2.data_timeless['mask'] = mask
         eop2.data_timeless['nask'] = 5 * mask
 
         with self.assertRaises(ValueError):
-            _ = data_OOI_classes.OOI.concatenate(eop1, eop2)
+            _ = data_OOI_utilities.OOI.concatenate(eop1, eop2)
 
     def test_equals(self):
-        eop1 = data_OOI_classes.OOI(data={'bands': np.arange(2 * 3 * 3 * 2, 
+        eop1 = data_OOI_utilities.OOI(data={'bands': np.arange(2 * 3 * 3 * 2, 
                                         dtype=np.float32).reshape(2, 3, 3, 2)})
-        eop2 = data_OOI_classes.OOI(data={'bands': np.arange(2 * 3 * 3 * 2, 
+        eop2 = data_OOI_utilities.OOI(data={'bands': np.arange(2 * 3 * 3 * 2, 
                                         dtype=np.float32).reshape(2, 3, 3, 2)})
         self.assertEqual(eop1, eop2)
 
@@ -318,7 +318,7 @@ class TestOOI(unittest.TestCase):
         mask_timeless = np.random.randint(10, 20, (100, 100, 1))
         scalar = np.random.rand(10, 1)
 
-        eop = data_OOI_classes.OOI(timestamp=timestamps,
+        eop = data_OOI_utilities.OOI(timestamp=timestamps,
                       data={'DATA': data},
                       mask={'MASK': mask},
                       scalar={'SCALAR': scalar},
