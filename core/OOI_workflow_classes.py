@@ -26,6 +26,8 @@ import attr
 import sys
 sys.path.append("D:/Code/eotopia/core")
 from OOI_task_classes import OOITask
+sys.path.append("D:/Code/eotopia/graphs_networks")
+from workflow_graphs import DirectedGraph
 
 LOGGER = logging.getLogger(__name__)
 
@@ -54,8 +56,7 @@ class OOIWorkflow:
             specifying the computational graph.
         :type dependencies: list(tuple or Dependency)
         """
-        ## TODO
-#        self.id_gen = _UniqueIdGenerator()
+        self.id_gen = _UniqueIdGenerator()
 
         if task_names:
             warnings.warn("Parameter 'task_names' could be removed.\
@@ -122,8 +123,8 @@ class OOIWorkflow:
         :return: A directed graph of the workflow
         :rtype: DirectedGraph
         """
+        dag = DirectedGraph()
         ## TODO!
-        # dag = DirectedGraph()
         # for dep in dependencies:
         #     for vertex in dep.inputs:
         #         task_uuid = vertex.private_task_config.uuid
@@ -327,3 +328,27 @@ class OOIWorkflow:
         # pylint: disable=import-outside-toplevel,raise-missing-from
         #from eolearn.visualization import EOWorkflowVisualization
         #return EOWorkflowVisualization(self)
+
+
+class _UniqueIdGenerator:
+    """ 
+    Generator of unique IDs, which is used in workflows only
+    """
+    MAX_UUIDS = 2 ** 20
+
+    def __init__(self):
+        self.uuids = set()
+
+    def _next(self):
+        if len(self.uuids) + 1 > _UniqueIdGenerator.MAX_UUIDS:
+            raise MemoryError('Limit of max UUIDs reached')
+        while True:
+            uid = uuid.uuid4()
+            if uid not in self.uuids:
+                self.uuids.add(uid)
+                return uid
+
+    def get_next(self):
+        """ Generates an ID
+        """
+        return self._next().hex
