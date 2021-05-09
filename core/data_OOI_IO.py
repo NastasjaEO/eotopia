@@ -5,8 +5,6 @@ Created on Fri May  7 20:11:43 2021
 @author: nasta
 """
 
-import pickle
-import gzip
 from collections import defaultdict
 import fs
 from fs.tempfs import TempFS
@@ -23,6 +21,7 @@ from sentinelhub.os_utils import sys_is_windows
 import sys
 sys.path.append("D:/Code/eotopia/core")
 from data_types import DataType, OverwritePermission, DataFormat
+from data_OOI_classes import DataIO
 from data_OOI_utils import DataParser
 
 def save_ooi(ooi, filesystem, patch_location, data=..., 
@@ -213,94 +212,4 @@ def _to_lowercase(ftype, fname, *_):
     """
     return ftype, fname if fname is ... else fname.lower()
 
-
-class DataIO:
-    """ 
-    A class handling saving and loading process of single data at a given location
-    """
-    def __init__(self, filesystem, path):
-        """
-        :param filesystem: A filesystem object
-        :type filesystem: fs.FS
-        :param path: A path in the filesystem
-        :type path: str
-        """
-        self.filesystem = filesystem
-        self.path = path
-
-    def __repr__(self):
-        """
-        A representation method
-        """
-        return '{}({})'.format(self.__class__.__name__, self.path)
-
-    def load(self):
-        """ 
-        Method for loading data
-        """
-        with self.filesystem.openbin(self.path, 'r') as file_handle:
-            if self.path.endswith(DataFormat.GZIP.extension()):
-                with gzip.open(file_handle, 'rb') as gzip_fp:
-                    return self._decode(gzip_fp, self.path)
-            return self._decode(file_handle, self.path)
-
-    def save(self, data, file_format, compress_level=0):
-        """ 
-        Method for saving data
-        """
-        gz_extension = DataFormat.GZIP.extension() if compress_level else ''
-        path = self.path + file_format.extension() + gz_extension
-
-        if isinstance(self.filesystem, (fs.osfs.OSFS, TempFS)):
-            with TempFS(temp_dir=self.filesystem.root_path) as tempfs:
-                self._save(tempfs, data, 'tmp_data', file_format, compress_level)
-                fs.move.move_file(tempfs, 'tmp_data', self.filesystem, path)
-            return
-
-    def _save(self, filesystem, data, path, file_format, compress_level=0):
-        """ 
-        Given a filesystem it saves and compresses the data
-        """
-        with filesystem.openbin(path, 'w') as file_handle:
-            if compress_level == 0:
-                self._write_to_file(data, file_handle, file_format)
-                return
-
-            with gzip.GzipFile(fileobj=file_handle, 
-                               compresslevel=compress_level, 
-                               mode='wb') as gzip_file_handle:
-                self._write_to_file(data, gzip_file_handle, file_format)
-
-    @staticmethod
-    def _write_to_file(data, file, file_format):
-        """ 
-        Writes to a file
-        """
-        if file_format is DataFormat.NPY:
-            np.save(file, data)
-        elif file_format is DataFormat.PICKLE:
-            pickle.dump(data, file)
-
-    @staticmethod
-    def _decode(file, path):
-        """ 
-        Loads from a file and decodes content
-        """
-        if DataFormat.PICKLE.extension() in path:
-            data = pickle.load(file)
-
-            # There seems to be an issue in geopandas==0.8.1 
-            # where unpickling GeoDataFrames, which were saved with an
-            # old geopandas version, loads geometry column into 
-            # a pandas.Series instead geopandas.GeoSeries. 
-            # Because of that it is missing a crs attribute which is only 
-            # attached to the entire GeoDataFrame
-            if isinstance(data, gpd.GeoDataFrame) and not\
-                isinstance(data.geometry, gpd.GeoSeries):
-                data = data.set_geometry('geometry')
-            return data
-
-        if DataFormat.NPY.extension() in path:
-            return np.load(file)
-        raise ValueError('Unsupported data type.')
 
