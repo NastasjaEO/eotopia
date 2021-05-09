@@ -2,7 +2,7 @@
 """
 Created on Sat May  8 16:01:27 2021
 
-@author: nasta
+@author: freeridingeo
 """
 
 import functools
@@ -16,7 +16,7 @@ from geopandas import GeoDataFrame
 import sys
 sys.path.append("D:/Code/eotopia/core")
 from data_types import DataType
-from data_OOI_utils import DataParser
+from data_OOI_classes import DataParser
 
 def merge_oois(*oois, data=..., time_dependent_op=None, timeless_op=None):
     """ 

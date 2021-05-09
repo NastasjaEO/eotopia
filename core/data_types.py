@@ -2,7 +2,7 @@
 """
 Created on Fri May  7 12:42:43 2021
 
-@author: nasta
+@author: freeridingeo
 """
 
 from enum import Enum

@@ -2,7 +2,7 @@
 """
 Created on Sat May  8 15:54:16 2021
 
-@author: nasta
+@author: freeridingeo
 """
 
 from sentinelhub import BBox, CRS

@@ -2,7 +2,7 @@
 """
 Created on Fri May  7 20:11:43 2021
 
-@author: nasta
+@author: freeridingeo
 """
 
 from collections import defaultdict
@@ -21,8 +21,7 @@ from sentinelhub.os_utils import sys_is_windows
 import sys
 sys.path.append("D:/Code/eotopia/core")
 from data_types import DataType, OverwritePermission, DataFormat
-from data_OOI_classes import DataIO
-from data_OOI_utils import DataParser
+from data_OOI_classes import DataIO, DataParser
 
 def save_ooi(ooi, filesystem, patch_location, data=..., 
              overwrite_permission=OverwritePermission.ADD_ONLY, 
