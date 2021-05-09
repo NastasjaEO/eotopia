@@ -64,8 +64,7 @@ class OOIWorkflow:
                           "'dependencies' parameter, including task names", 
                           DeprecationWarning, stacklevel=2)
         
-        ## TODO
-#        self.dependencies = self._parse_dependencies(dependencies, task_names)
+        self.dependencies = self._parse_dependencies(dependencies, task_names)
         ## TODO
 #        self.uuid_dict = self._set_task_uuid(self.dependencies)
         ## TODO
@@ -85,12 +84,11 @@ class OOIWorkflow:
         :return: List of dependencies
         :rtype: list(Dependency)
         """
-        ## TODO!
-#        parsed_dependencies = [dep if isinstance(dep, Dependency) else Dependency(*dep) for dep in dependencies]
-#        for dep in parsed_dependencies:
-#            if task_names and dep.task in task_names:
-#                dep.set_name(task_names[dep.task])
-#        return parsed_dependencies
+        parsed_dependencies = [dep if isinstance(dep, Dependency) else Dependency(*dep) for dep in dependencies]
+        for dep in parsed_dependencies:
+            if task_names and dep.task in task_names:
+                dep.set_name(task_names[dep.task])
+        return parsed_dependencies
 
     def _set_task_uuid(self, dependencies):
         """ 
@@ -107,7 +105,7 @@ class OOIWorkflow:
             task = dep.task
             ## TODO!
             # if task.private_task_config.uuid in uuid_dict:
-            #     raise ValueError('EOWorkflow cannot execute the same instance of EOTask multiple times')
+            #     raise ValueError('OOIWorkflow cannot execute the same instance of EOTask multiple times')
 
             # task.private_task_config.uuid = self.id_gen.get_next()
             # uuid_dict[task.private_task_config.uuid] = dep
@@ -227,20 +225,18 @@ class OOIWorkflow:
         """
         intermediate_results = {}
 
-        ## TODO!
-        # for dep in self.ordered_dependencies:
-        #     result = self._execute_task(dependency=dep,
-        #                                 input_args=input_args,
-        #                                 intermediate_results=intermediate_results,
-        #                                 monitor=monitor)
+        for dep in self.ordered_dependencies:
+            result = self._execute_task(dependency=dep,
+                                        input_args=input_args,
+                                        intermediate_results=intermediate_results,
+                                        monitor=monitor)
 
-        #     intermediate_results[dep] = result
+        intermediate_results[dep] = result
+        self._relax_dependencies(dependency=dep,
+                                     out_degrees=out_degs,
+                                     intermediate_results=intermediate_results)
 
-        #     self._relax_dependencies(dependency=dep,
-        #                              out_degrees=out_degs,
-        #                              intermediate_results=intermediate_results)
-
-        # return intermediate_results
+        return intermediate_results
 
     def _relax_dependencies(self, *, dependency, out_degrees, intermediate_results):
         """ 
@@ -259,16 +255,15 @@ class OOIWorkflow:
         to be executed) of the already-executed tasks
         :type intermediate_results: dict
         """
-        ## TODO!
-        # current_task = dependency.task
-        # for input_task in dependency.inputs:
-        #     dep = self.uuid_dict[input_task.private_task_config.uuid]
-        #     out_degrees[dep] -= 1
+        current_task = dependency.task
+        for input_task in dependency.inputs:
+            dep = self.uuid_dict[input_task.private_task_config.uuid]
+            out_degrees[dep] -= 1
 
-        #     if out_degrees[dep] == 0:
-        #         LOGGER.debug("Removing intermediate result for %s", 
-        #                      current_task.__class__.__name__)
-        #         del intermediate_results[dep]
+            if out_degrees[dep] == 0:
+                LOGGER.debug("Removing intermediate result for %s", 
+                             current_task.__class__.__name__)
+                del intermediate_results[dep]
 
     def get_tasks(self):
         """ 
@@ -281,18 +276,17 @@ class OOIWorkflow:
         :rtype: OrderedDict
         """
         task_dict = collections.OrderedDict()
-        ## TODO!
-        # for dep in self.ordered_dependencies:
-        #     task_name = dep.name
+        for dep in self.ordered_dependencies:
+            task_name = dep.name
 
-        #     if task_name in task_dict:
-        #         count = 0
-        #         while dep.get_custom_name(count) in task_dict:
-        #             count += 1
+            if task_name in task_dict:
+                count = 0
+                while dep.get_custom_name(count) in task_dict:
+                    count += 1
 
-        #         task_name = dep.get_custom_name(count)
-        #     task_dict[task_name] = dep.task
-        # return task_dict
+                task_name = dep.get_custom_name(count)
+            task_dict[task_name] = dep.task
+        return task_dict
 
     def get_dot(self):
         """ 
@@ -352,3 +346,113 @@ class _UniqueIdGenerator:
         """ Generates an ID
         """
         return self._next().hex
+
+
+class LinearWorkflow(OOIWorkflow):
+    """ 
+    A linear version of OOIWorkflow where each tasks only gets results of the 
+    previous task
+
+    Example:
+            workflow = LinearWorkflow(task1, task2, task3)
+    """
+    def __init__(self, *tasks, **kwargs):
+        """
+        :param tasks: Tasks in the order of execution
+        :type tasks: OOITask
+        """
+        tasks = [self._parse_task(task) for task in tasks]
+        tasks = self._make_tasks_unique(tasks)
+
+        dependencies = [(task, [tasks[idx - 1][0]]\
+                         if idx > 0 else [], name) for idx, (task, name)\
+                        in enumerate(tasks)]
+        super().__init__(dependencies, **kwargs)
+
+    @staticmethod
+    def _parse_task(task):
+        """ 
+        Parses input task
+        """
+        if isinstance(task, OOITask):
+            return task, None
+        if isinstance(task, (tuple, list)) and len(task) == 2:
+            return task
+        raise ValueError('Cannot parse {}, expected an instance of\
+                         OOIask or a tuple (OOITask, name)'.format(task))
+
+    @staticmethod
+    def _make_tasks_unique(tasks):
+        """ 
+        If the same instances of tasks are given to LinearWorkflow, this will 
+        deep copy them
+        """
+        unique_tasks = []
+        prev_tasks = set()
+
+        for task, name in tasks:
+            if task in prev_tasks:
+                task = copy.deepcopy(task)
+
+            prev_tasks.add(task)
+            unique_tasks.append((task, name))
+
+        return unique_tasks
+
+@attr.s(eq=False)  # eq=False preserves the original hash
+class Dependency:
+    """ 
+    Class representing a node in OOIWorkflow graph
+    
+    :param task: An instance of OOITask
+    :type task: EOTask
+    :param inputs: A list of OOITask instances which are dependencies 
+        of the given `task`
+    :type inputs: list(OOITask) or OOITask
+    :param name: Name of the Dependency node
+    :type name: str or None
+    """
+    task = attr.ib(default=None)  # validator parameter could be used, 
+                                    # but its error msg is ugly
+    inputs = attr.ib(factory=list)
+    name = attr.ib(default=None)
+
+    def __attrs_post_init__(self):
+        """ 
+        This is executed right after init method
+        """
+        if not isinstance(self.task, OOITask):
+            raise ValueError('Value {} should be an instance of {}'.\
+                             format(self.task, OOITask.__name__))
+        self.task = self.task
+
+        if isinstance(self.inputs, OOITask):
+            self.inputs = [self.inputs]
+        if not isinstance(self.inputs, (list, tuple)):
+            raise ValueError('Value {} should be a list'.format(self.inputs))
+        for input_task in self.inputs:
+            if not isinstance(input_task, OOITask):
+                raise ValueError('Value {} should be an instance of {}'.\
+                                 format(input_task, OOITask.__name__))
+
+        if self.name is None:
+            self.name = self.task.__class__.__name__
+
+    def set_name(self, name):
+        """ 
+        Sets a new name
+        """
+        self.name = name
+
+    def get_custom_name(self, number=0):
+        """
+        Provides custom task name according to given number. E.g. FooTask -> FooTask
+        """
+        if number:
+            return '{}_{}'.format(self.name, number)
+        return self.name
+
+
+
+
+
