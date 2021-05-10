@@ -32,8 +32,7 @@ from sentinelhub import BBox, CRS
 
 import sys
 sys.path.append("D:/Code/eotopia/core")
-from data_OOI_IO import (walk_data_type_folder, walk_main_folder, 
-                         _check_add_only_permission, _check_case_matching)
+#from data_OOI_utils import ()
 from data_types import DataType, OverwritePermission, DataFormat
 from data_OOI_utils import deep_eq
 from data_OOI_merge import (_parse_operation, _select_meta_info_data,
@@ -41,7 +40,9 @@ from data_OOI_merge import (_parse_operation, _select_meta_info_data,
                             _merge_timeless_raster_obj, _merge_vector_obj)
 
 sys.path.append("D:/Code/eotopia/utils")
-from filesystem_utils import get_filesystem
+from filesystem_utils import (get_filesystem, 
+                              walk_data_type_folder, walk_main_folder,
+                              _check_add_only_permission, _check_case_matching)
 
 LOGGER = logging.getLogger(__name__)
 warnings.simplefilter('default', DeprecationWarning)
@@ -1388,19 +1389,18 @@ def merge_oois(*oois, data=..., time_dependent_op=None, timeless_op=None):
 
 
 def save_ooi(ooi, filesystem, patch_location, data=..., 
-             overwrite_permission=OverwritePermission.ADD_ONLY, 
-             compress_level=0):
+             overwrite_permission=OverwritePermission.ADD_ONLY, compress_level=0):
     """ 
     A utility function used by OOI.save method
     """
-    data_exists = filesystem.exists(patch_location)
 
+    data_exists = filesystem.exists(patch_location)
     if overwrite_permission is OverwritePermission.OVERWRITE_DATA and data_exists:
         filesystem.removetree(patch_location)
         if patch_location != '/':
-            patch_exists = False
+            data_exists = False
 
-    if not patch_exists:
+    if not data_exists:
         filesystem.makedirs(patch_location, recreate=True)
 
     ooi_data = list(walk_ooi(ooi, patch_location, data))
