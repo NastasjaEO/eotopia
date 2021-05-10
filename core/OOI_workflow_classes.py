@@ -205,6 +205,33 @@ class OOIWorkflow:
                                      format(task.__class__.__name__, type(args)))
         return input_args
 
+    def _execute_task(self, *, dependency, input_args, intermediate_results, monitor):
+        """ Executes a task of the workflow
+        
+        :param dependency: A workflow dependency
+        :type dependency: Dependency
+        :param input_args: External task parameters.
+        :type input_args: dict
+        :param intermediate_results: The dictionary containing intermediate results, 
+            including the results of all
+        tasks that the current task depends on.
+        :type intermediate_results: dict
+        :return: The result of the task in dependency
+        :rtype: object
+        """
+        task = dependency.task
+        inputs = tuple(intermediate_results[self.uuid_dict[input_task.private_task_config.uuid]]
+                       for input_task in dependency.inputs)
+
+        kw_inputs = input_args.get(task, {})
+        if isinstance(kw_inputs, tuple):
+            inputs += kw_inputs
+            kw_inputs = {}
+
+        LOGGER.debug("Computing %s(*%s, **%s)", 
+                     task.__class__.__name__, str(inputs), str(kw_inputs))
+        return task(*inputs, **kw_inputs, monitor=monitor)
+
     def _execute_tasks(self, *, input_args, out_degs, monitor):
         """ 
         Executes tasks comprising the workflow in the predetermined order

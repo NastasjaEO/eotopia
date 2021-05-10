@@ -40,4 +40,6 @@ dependencies:
           - fs==2.4.9
           - numpy>=1.19.0
           - attrs>=20.3.0
-
+          - hypothesis==6.12.0
+          - tqdm>=4.50.2
+          
