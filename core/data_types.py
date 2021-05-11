@@ -15,7 +15,7 @@ class DataType(Enum):
     an analysis
     """
 
-    DATA = 'data'
+    DATA = 'num_data'
     MASK = 'mask'
     SCALAR = 'scalar'
     LABEL = 'label'

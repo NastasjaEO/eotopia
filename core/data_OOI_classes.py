@@ -57,7 +57,7 @@ class OOI:
     Usually an EO data thingy
     """
 
-    data = attr.ib(factory=dict)
+    num_data = attr.ib(factory=dict)
     mask = attr.ib(factory=dict)
     scalar = attr.ib(factory=dict)
     label = attr.ib(factory=dict)
@@ -343,8 +343,20 @@ class OOI:
             raise TypeError('{} does not contain a dictionary of features'.\
                             format(data_type))
 
-    ## TODO!
-    # def reset_feature_type(self, data_type):
+    def reset_data_type(self, data_type):
+        """
+        Resets the values of the given data type.
+        
+        :param data_type: Type of a data
+        :type data_type: DataType
+        """
+        data_type = DataType(data_type)
+        if data_type.has_dict():
+            self[data_type] = {}
+        elif data_type is DataType.BBOX:
+            self[data_type] = None
+        else:
+            self[data_type] = []
 
     def set_bbox(self, new_bbox):
         """
