@@ -502,6 +502,7 @@ class OOI:
              compress_level=0, filesystem=None):
         """ 
         Method to save an OOI from memory to a storage
+        The output is a folder with the data stored as .npy
 
         :param path: A location where to save OOI. 
             It can be either a local path or a remote URL path.
@@ -1225,7 +1226,7 @@ class DataParser:
                     yield self._return_data(data_type, ...)
                 else:
                     for ooi_name in ooi[data_type]:
-                        yield self._return_feature(data_type, ooi_name)
+                        yield self._return_data(data_type, ooi_name)
             else:
                 for ooi_name, new_ooi_name in data_dict.items():
                     if ooi is not None and ooi_name not in ooi[data_type]:
@@ -1246,7 +1247,8 @@ class DataParser:
         return None
 
     def _return_data(self, data_type, ooi_name, new_ooi_name=...):
-        """ Helping function of `get_data`
+        """ 
+        Helping function of `get_data`
         """
         if self.new_names:
             return data_type, ooi_name, (self.rename_function(ooi_name)\
