@@ -12,10 +12,6 @@ from abc import abstractmethod
 import fs
 import numpy as np
 
-from .eodata import OOI
-from .OOITask import OOITask
-from .fs_utils import get_filesystem
-
 import sys
 sys.path.append("D:/Code/eotopia/core")
 from data_OOI_classes import OOI
@@ -95,7 +91,7 @@ class IOTask(OOITask):
         """
         raise NotImplementedError
 
-class SaveTask(IOTask):
+class SaveTask(OOITask):
     """ 
     Saves the given OOI to a filesystem
     """
@@ -140,7 +136,7 @@ class SaveTask(IOTask):
         OOI.save(path, filesystem=self.filesystem, **self.kwargs)
         return OOI
 
-class LoadTask(IOTask):
+class LoadTask(OOITask):
     """ 
     Loads an OOI from a filesystem
     """
@@ -189,7 +185,7 @@ class AddData(OOITask):
         self.data_type, self.data_name = next(self._parse_data(data)())
 
     def execute(self, OOI, new_data):
-        """Returns the OOI with added features.
+        """Returns the OOI with added data.
         :param OOI: input OOI
         :type OOI: OOI
         :param new_data: data to be added to the data
@@ -312,7 +308,7 @@ class InitializeData(OOITask):
         :type dtype: NumPy dtype
         :raises ValueError: Raises an exception when passing the wrong shape argument.
         """
-        self.features = self._parse_features(features)
+        self.data = self._parse_features(data)
 
         try:
             self.shape_data= next(self._parse_data(shape)())

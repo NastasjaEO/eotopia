@@ -81,7 +81,17 @@ class OOIWorkflow:
         :return: List of dependencies
         :rtype: list(Dependency)
         """
-        parsed_dependencies = [dep if isinstance(dep, Dependency) else Dependency(*dep) for dep in dependencies]
+
+        parsed_dependencies = []
+        for i in range(len(dependencies)):
+            dep = dependencies[i]
+            if isinstance(dep, Dependency):
+                parsed_dependencies.append(dep)
+            else:
+                parsed_dependencies.append(Dependency(dep))
+        # parsed_dependencies = [dep if isinstance(dep, Dependency)\
+        #                        else Dependency(*dep) for dep in dependencies]
+
         for dep in parsed_dependencies:
             if task_names and dep.task in task_names:
                 dep.set_name(task_names[dep.task])
@@ -101,7 +111,8 @@ class OOIWorkflow:
         for dep in dependencies:
             task = dep.task
             if task.private_task_config.uuid in uuid_dict:
-                raise ValueError('OOIWorkflow cannot execute the same instance of EOTask multiple times')
+                raise ValueError('OOIWorkflow cannot execute the same\
+                                 instance of OOITask multiple times')
 
             task.private_task_config.uuid = self.id_gen.get_next()
             uuid_dict[task.private_task_config.uuid] = dep
@@ -177,9 +188,7 @@ class OOIWorkflow:
         :rtype: WorkflowResults
         """
         out_degs = dict(self.dag.get_outdegrees())
-
         input_args = self.parse_input_args(input_args)
-
         results = WorkflowResults(self._execute_tasks(input_args=input_args, 
                    out_degs=out_degs, monitor=monitor))
         LOGGER.debug('Workflow finished with %s', repr(results))
@@ -196,7 +205,7 @@ class OOIWorkflow:
         for task, args in input_args.items():
             if not isinstance(task, OOITask):
                 raise ValueError('Invalid input argument {},\
-                                 should be an instance of EOTask'.format(task))
+                                 should be an instance of OOiTask'.format(task))
 
             if not isinstance(args, (tuple, dict)):
                 raise ValueError('Execution input arguments of each task\
@@ -220,7 +229,8 @@ class OOIWorkflow:
         :rtype: object
         """
         task = dependency.task
-        inputs = tuple(intermediate_results[self.uuid_dict[input_task.private_task_config.uuid]]
+        inputs =\
+            tuple(intermediate_results[self.uuid_dict[input_task.private_task_config.uuid]]
                        for input_task in dependency.inputs)
 
         kw_inputs = input_args.get(task, {})
@@ -345,31 +355,6 @@ class OOIWorkflow:
         #from eolearn.visualization import EOWorkflowVisualization
         #return EOWorkflowVisualization(self)
 
-
-class _UniqueIdGenerator:
-    """ 
-    Generator of unique IDs, which is used in workflows only
-    """
-    MAX_UUIDS = 2 ** 20
-
-    def __init__(self):
-        self.uuids = set()
-
-    def _next(self):
-        if len(self.uuids) + 1 > _UniqueIdGenerator.MAX_UUIDS:
-            raise MemoryError('Limit of max UUIDs reached')
-        while True:
-            uid = uuid.uuid4()
-            if uid not in self.uuids:
-                self.uuids.add(uid)
-                return uid
-
-    def get_next(self):
-        """ Generates an ID
-        """
-        return self._next().hex
-
-
 class LinearWorkflow(OOIWorkflow):
     """ 
     A linear version of OOIWorkflow where each tasks only gets results of the 
@@ -434,8 +419,7 @@ class Dependency:
     :param name: Name of the Dependency node
     :type name: str or None
     """
-    task = attr.ib(default=None)  # validator parameter could be used, 
-                                    # but its error msg is ugly
+    task = attr.ib(default=None)  # validator parameter could be used,                                     # but its error msg is ugly
     inputs = attr.ib(factory=list)
     name = attr.ib(default=None)
 
@@ -443,9 +427,9 @@ class Dependency:
         """ 
         This is executed right after init method
         """
-        if not isinstance(self.task, OOITask):
-            raise ValueError('Value {} should be an instance of {}'.\
-                             format(self.task, OOITask.__name__))
+#        if not isinstance(self.task, OOITask):
+#            raise ValueError('Value {} should be an instance of {}'.\
+#                             format(self.task, OOITask.__name__))
         self.task = self.task
 
         if isinstance(self.inputs, OOITask):
@@ -544,4 +528,25 @@ class WorkflowResults(collections.abc.Mapping):
             repr_list.append(dependency_repr)
         return '\n  '.join(repr_list) + '\n)'
 
+class _UniqueIdGenerator:
+    """ 
+    Generator of unique IDs, which is used in workflows only
+    """
+    MAX_UUIDS = 2 ** 20
 
+    def __init__(self):
+        self.uuids = set()
+
+    def _next(self):
+        if len(self.uuids) + 1 > _UniqueIdGenerator.MAX_UUIDS:
+            raise MemoryError('Limit of max UUIDs reached')
+        while True:
+            uid = uuid.uuid4()
+            if uid not in self.uuids:
+                self.uuids.add(uid)
+                return uid
+
+    def get_next(self):
+        """ Generates an ID
+        """
+        return self._next().hex

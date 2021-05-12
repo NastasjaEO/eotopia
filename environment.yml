@@ -37,9 +37,5 @@ dependencies:
           # Use double '==' signs!
           - sentinelhub==3.2.1
           - geopandas==0.8.1
-          - fs==2.4.9
           - numpy>=1.19.0
-          - attrs>=20.3.0
-          - hypothesis==6.12.0
-          - tqdm>=4.50.2
-          
+          - eo-learn-core==0.9.1

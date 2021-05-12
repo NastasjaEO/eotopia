@@ -1169,7 +1169,8 @@ class DataParser:
 
     @staticmethod
     def _parse_names_tuple(ooi_names, new_names):
-        """Helping function of `_parse_feature_names` that parses a tuple or a list of feature names."""
+        """Helping function of `_parse_feature_names` that parses a tuple or a 
+        list of data names."""
         for name in ooi_names:
             if not isinstance(name, str) and name is not ...:
                 raise ValueError('Failed to parse {}, expected a string'.format(name))

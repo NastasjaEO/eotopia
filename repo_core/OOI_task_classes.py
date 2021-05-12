@@ -58,12 +58,14 @@ class OOITask(ABC):
         return self._execute_handling(*oois, **kwargs)
 
     def execute_and_monitor(self, *oois, **kwargs):
-        """ In the current version nothing additional happens in this method
+        """ 
+        In the current version nothing additional happens in this method
         """
         return self._execute_handling(*oois, **kwargs)
 
     def _execute_handling(self, *oois, **kwargs):
-        """ Handles measuring execution time and error propagation
+        """ 
+        Handles measuring execution time and error propagation
         """
         self.private_task_config.start_time = datetime.datetime.now()
 
@@ -85,7 +87,7 @@ class OOITask(ABC):
             raise extended_exception.with_traceback(traceback)
 
     @abstractmethod
-    def execute(self, *eopatches, **kwargs):
+    def execute(self, *oois, **kwargs):
         """ Implement execute function
         """
         raise NotImplementedError
