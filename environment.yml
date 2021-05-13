@@ -35,7 +35,9 @@ dependencies:
 
           # pip requirements
           # Use double '==' signs!
+          - lxml>=4.6.1
           - sentinelhub==3.2.1
+          - rasterio==1.1.8
           - geopandas==0.8.1
           - numpy>=1.19.0
           - eo-learn-core==0.9.1

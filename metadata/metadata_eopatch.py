@@ -2,7 +2,7 @@
 """
 Created on Wed May 12 14:07:28 2021
 
-@author: nasta
+@author: freeridingeo
 """
 
 def add_metadata_to_eopatch(eopatch, metainfo):
