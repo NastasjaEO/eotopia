@@ -6,6 +6,7 @@ Created on Thu May 13 11:40:34 2021
 """
 
 from pathlib import Path
+import numpy as np
 import rasterio
 from rasterio.plot import show
 from rasterio.warp import transform_bounds
@@ -129,5 +130,29 @@ def write_numpydata_to_tiff(data, path, meta=None):
     else:
         with rasterio.open(path, 'w', driver='GTiff', dtype=data.dtype) as dst:
             dst.write(data)
+
+def save_numpy2xarray(outpath, data, lats, lons, bandnames=None):
+    import xarray as xr
+    
+    size = data.shape
+    if len(size) == 2:
+        output = xr.Dataset(
+            {
+                "z": (
+                      ("lat", "lon"),
+                      data,
+                      ),
+            },
+            coords={"lat": lats, "lon": lons},
+        )
+    elif len(size) == 3:
+        if not bandnames:
+            nums = data.shape[0]
+            bandnames = np.arange(nums)
+            output = xr.DataArray(data, 
+                                  coords=[("bands", bandnames), 
+                                          ("lat", lats), 
+                                          ("long", lons)])
+    output.to_netcdf(path=outpath)
 
 
