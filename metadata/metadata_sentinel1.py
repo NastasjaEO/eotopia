@@ -2,64 +2,12 @@
 """
 Created on Thu May 13 12:17:55 2021
 
-@author: nasta
+@author: freeridingeo
 """
 
 from xml.etree import ElementTree as ET
 from lxml import etree
 import datetime
-
-def xml_platformHeading(path):
-    """
-    path: Path to XML file of the specific swath
-    """
-    tree = etree.parse(path)
-    root = tree.getroot()
-    platformHeading = root.xpath('.//platformHeading')
-    return float(platformHeading[0].text)
-
-def xml_incangle(path):
-    """
-    path: Path to XML file of the specific swath
-    """
-    tree = etree.parse(path)
-    root = tree.getroot()
-    incangle = root.xpath('.//incidenceAngleMidSwath')
-    return float(incangle[0].text)
-
-def xml_gridpoint_data(path):
-    tree = etree.parse(path)
-    root = tree.getroot()
-#    geolocationGridPoints = root.xpath('.//geolocationGridPoint')
-    incidenceAngles = root.xpath('.//incidenceAngle')
-    elevationAngles = root.xpath('.//elevationAngle')
-    latitudes = root.xpath('.//latitude')
-    longitudes = root.xpath('.//longitude')
-    hghts = root.xpath('.//height')
- 
-    incA = []
-    for i in range(len(incidenceAngles)):
-        incA.append(incidenceAngles[i].text)
-    elevA = []
-    for i in range(len(elevationAngles)):
-        elevA.append(elevationAngles[i].text)
-    lats = []
-    for i in range(len(latitudes)):
-        lats.append(latitudes[i].text)
-    lons = []
-    for i in range(len(longitudes)):
-        lons.append(longitudes[i].text)
-    heights = []
-    for i in range(len(hghts)):
-        heights.append(hghts[i].text)
-
-    length = len(incA)
-    lim = len(lats)
-    start = length - lim
-    incA = incA[start:]
-    elevA = elevA[start:]
-    return incA, elevA, heights, lats, lons
-
 
 def metadata_from_safefile(safefile, namespaces):
     tree = ET.fromstring(safefile)
@@ -159,4 +107,57 @@ def subswath_metadata(xmlfile):
     meta_dict['incidenceAngleMidSwath'] = float(xmldoc.find('.//incidenceAngleMidSwath').text)
     meta_dict['terrainHeight'] = float(xmldoc.find('.//generalAnnotation/terrainHeightList/terrainHeight/value').text)
     return meta_dict
+
+
+
+def xml_platformHeading(path):
+    """
+    path: Path to XML file of the specific swath
+    """
+    tree = etree.parse(path)
+    root = tree.getroot()
+    platformHeading = root.xpath('.//platformHeading')
+    return float(platformHeading[0].text)
+
+def xml_incangle(path):
+    """
+    path: Path to XML file of the specific swath
+    """
+    tree = etree.parse(path)
+    root = tree.getroot()
+    incangle = root.xpath('.//incidenceAngleMidSwath')
+    return float(incangle[0].text)
+
+def xml_gridpoint_data(path):
+    tree = etree.parse(path)
+    root = tree.getroot()
+#    geolocationGridPoints = root.xpath('.//geolocationGridPoint')
+    incidenceAngles = root.xpath('.//incidenceAngle')
+    elevationAngles = root.xpath('.//elevationAngle')
+    latitudes = root.xpath('.//latitude')
+    longitudes = root.xpath('.//longitude')
+    hghts = root.xpath('.//height')
+ 
+    incA = []
+    for i in range(len(incidenceAngles)):
+        incA.append(incidenceAngles[i].text)
+    elevA = []
+    for i in range(len(elevationAngles)):
+        elevA.append(elevationAngles[i].text)
+    lats = []
+    for i in range(len(latitudes)):
+        lats.append(latitudes[i].text)
+    lons = []
+    for i in range(len(longitudes)):
+        lons.append(longitudes[i].text)
+    heights = []
+    for i in range(len(hghts)):
+        heights.append(hghts[i].text)
+
+    length = len(incA)
+    lim = len(lats)
+    start = length - lim
+    incA = incA[start:]
+    elevA = elevA[start:]
+    return incA, elevA, heights, lats, lons
 

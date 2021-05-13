@@ -13,3 +13,4 @@ def bgr_to_rgb(bgr):
     Converts Blue, Green, Red to Red, Green, Blue.
     """
     return bgr[..., [2, 1, 0]]
+

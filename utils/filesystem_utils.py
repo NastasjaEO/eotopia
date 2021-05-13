@@ -6,6 +6,7 @@ Created on Fri May  7 22:11:02 2021
 """
 
 import os
+import glob
 from pathlib import Path, PurePath
 
 import fs
@@ -69,6 +70,10 @@ def get_base_filesystem_and_path(*path_parts, **kwargs):
     filesystem_path = base_path.split('\\')[0] if '\\' in base_path else '/'
 
     return get_filesystem(filesystem_path, **kwargs), posix_path
+
+def retrieve_listof_files_from_dir(directory, file_type='*'):
+    """"Returns a list of files of a directory"""
+    return glob.glob(os.path.join(directory, file_type))
 
 
 ## TODO!
