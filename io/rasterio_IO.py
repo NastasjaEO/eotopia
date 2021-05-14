@@ -155,4 +155,25 @@ def save_numpy2xarray(outpath, data, lats, lons, bandnames=None):
                                           ("long", lons)])
     output.to_netcdf(path=outpath)
 
+def save_raster_to_eopatch(rasterpath, outpath=None):
+    from eolearn.core import EOPatch, FeatureType
 
+    with rasterio.open(rasterpath, "r") as src:
+        img_ = src.read(1)
+    
+    raster_shape = img_.shape
+    
+    if len(raster_shape) == 3:
+        img = img_
+    elif len(raster_shape) == 2:
+        img = np.expand_dims(img_, axis=0)
+
+    raster_patch = EOPatch()
+    raster_patch[FeatureType.DATA_TIMELESS]['raster'] = img
+
+    if outpath:
+        from eolearn.core import OverwritePermission
+        raster_patch.save(outpath, 
+                  overwrite_permission=OverwritePermission.OVERWRITE_FEATURES)
+
+    return raster_patch
