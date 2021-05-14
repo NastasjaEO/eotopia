@@ -20,7 +20,7 @@ import holoviews as hv
 
 from .utils.string_utils import string_to_variable
 from .utils.dataframe_utils import feature_array_to_dataframe
-from .utils.xarray_utils import eopatch_to_xrdataset
+from .utils.coordinate_utils import new_xarray_coordinates
 
 PLOT_WIDTH = 800
 PLOT_HEIGHT = 500
@@ -305,7 +305,7 @@ class EOPatchVisualization:
         timestamps = eopatch_da.coords['time'].values
         bands = eopatch_da[..., self.rgb] * self.rgb_factor
         bands = bands.rename({string_to_variable(feature_name, '_dim'): 'band'}).transpose('time', 'band', 'y', 'x')
-        x_values, y_values = eopatch_to_xrdataset(eopatch_da, crs, CRS.POP_WEB)
+        x_values, y_values = new_xarray_coordinates(eopatch_da, crs, CRS.POP_WEB)
         eopatch_band = xr.DataArray(data=np.clip(bands.data, 0, 1),
                                    coords={'time': timestamps,
                                            'band': self.rgb,
