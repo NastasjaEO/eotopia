@@ -156,6 +156,12 @@ def save_numpy2xarray(outpath, data, lats, lons, bandnames=None):
     output.to_netcdf(path=outpath)
 
 def save_raster_to_eopatch(rasterpath, dataname="raster", outpath=None):
+    """ 
+    Save raster with one band to eopatch
+    rasterpath  str
+    outpath     str
+    dataname    str
+    """
     from eolearn.core import EOPatch, FeatureType
 
     with rasterio.open(rasterpath, "r") as src:
@@ -179,6 +185,12 @@ def save_raster_to_eopatch(rasterpath, dataname="raster", outpath=None):
     return raster_patch
 
 def save_multibandraster_to_eopatch(rasterpath, dataname="raster", outpath=None):
+    """ 
+    Save raster with several bands to eopatch
+    rasterpath  str
+    outpath     str
+    dataname    str
+    """
     from eolearn.core import EOPatch, FeatureType
 
     with rasterio.open(rasterpath, "r") as src:

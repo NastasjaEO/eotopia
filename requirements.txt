@@ -8,3 +8,6 @@ rasterio==1.1.8
 xarray==0.16.2
 eo-learn-core==0.9.1
 imageio==2.9.0
+geoviews==1.9.1
+hvplot==0.7.1
+
