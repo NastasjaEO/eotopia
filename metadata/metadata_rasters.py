@@ -7,7 +7,7 @@ Created on Thu May 13 14:59:47 2021
 
 import pandas as pd
 import rasterio
-from rasterio.transform import Affine, array_bounds
+from rasterio.transform import array_bounds
 
 RASTER_META_PARAMS = [
     "width",
