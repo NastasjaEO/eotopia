@@ -8,7 +8,6 @@ Created on Fri May 14 14:20:30 2021
 import numpy as np
 from sentinelhub import BBox
 
-
 def new_xarray_coordinates(data, crs, new_crs):
     """ 
     Returns coordinates for xarray DataArray/Dataset in new crs.

@@ -13,7 +13,7 @@ from eolearn.core import FeatureParser
 from .metadata_geographical import (get_eopatch_coordinates)
 from .metadata_eopatch import get_feature_dimensions
 
-from .utils.string_utils import string_to_variable
+from .string_utils import string_to_variable
 
 def feature_array_to_dataframe(eopatch, feature, remove_depth=True, crs=None, convert_bool=True):
     """ 

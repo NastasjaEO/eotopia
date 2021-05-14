@@ -12,6 +12,9 @@ from eolearn.core import FeatureTypeSet, FeatureParser
 from .metadata_temporal import _return_timestamps_of_eopatch
 from .metadata_eopatch import _get_eopatch_depth_coordinates
 
+def get_eopatch_bbox(eopatch):
+    return eopatch.bbox
+
 def _get_spatial_coordinates_of_eopatch(bbox, data, feature_type):
     """ 
     Returns spatial coordinates (dictionary) for creating 

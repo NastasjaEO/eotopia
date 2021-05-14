@@ -59,6 +59,4 @@ def add_metadata_to_eopatch(eopatch, metainfo):
 def get_eopatch_size(eopatch):
     return eopatch.meta_info.get('size_x'), eopatch.meta_info.get('size_y')
 
-def get_eopatch_bbox(eopatch):
-    return eopatch.bbox
 
