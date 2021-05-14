@@ -7,4 +7,4 @@ sentinelhub>=3.2.1
 rasterio==1.1.8
 xarray==0.16.2
 eo-learn-core==0.9.1
-
+imageio==2.9.0
