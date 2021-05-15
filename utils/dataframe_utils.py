@@ -7,6 +7,7 @@ Created on Fri May 14 14:11:23 2021
 
 import numpy as np
 import xarray as xr
+import pandas as pd
 
 from eolearn.core import FeatureParser
 
@@ -60,5 +61,41 @@ def feature_array_to_dataframe(eopatch, feature, remove_depth=True,
         dataframe = dataframe.astype(np.uint8)
     return dataframe
 
+def create_dummy_dataframe_for_blank_timestamps(geodataframe,
+                                                blank_timestamps, dummy_geometry,
+                                                timestamp_column='TIMESTAMP', 
+                                                geometry_column='geometry',
+                                                fill_str='', fill_numeric=1):
+    """ 
+    Creates gpd GeoDataFrame to fill with dummy data 
+        
+    :param geodataframe: dataframe to append rows to
+    :type geodataframe: geopandas.GeoDataFrame
+    :param timestamp_column: geopandas.GeoDataFrame columns with timestamps
+    :type timestamp_column: str
+    :param blank_timestamps: timestamps for constructing dataframe
+    :type blank_timestamps: list of timestamps
+    :param dummy_geometry: geometry to plot when there is no data
+    :type dummy_geometry: shapely.geometry.Polygon
+    :param fill_str: insert when there is no value in str column
+    :type fill_str: str
+    :param fill_numeric: insert when
+    :type fill_numeric: float
+    :return: dataframe with dummy data
+    :rtype: geopandas.GeoDataFrame
+    """
+    dataframe = pd.DataFrame(data=blank_timestamps, columns=[timestamp_column])
 
+    for column in geodataframe.columns:
+        if column == timestamp_column:
+            continue
+        if column == geometry_column:
+            dataframe[column] = dummy_geometry
+        elif column == 'valid':
+            dataframe[column] = False
+        elif geodataframe[column].dtype in (int, float):
+            dataframe[column] = fill_numeric
+        else:
+            dataframe[column] = fill_str
+    return dataframe
 

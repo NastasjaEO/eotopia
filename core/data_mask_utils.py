@@ -6,7 +6,25 @@ Created on Sat May  8 15:40:40 2021
 """
 
 import numpy as np
+from eolearn.core import EOPatch, FeatureType
 
+def mask_data_by_FeatureMask(eopatch, data_da, mask):
+    """
+    Creates a copy of array and insert 0 where data is masked.
+        
+    :param data_da: dataarray
+    :type data_da: xarray.DataArray
+    :return: dataaray
+    :rtype: xarray.DataArray
+    """
+    mask = eopatch[FeatureType.MASK][mask]
+    if len(data_da.values.shape) == 4:
+        mask = np.repeat(mask, data_da.values.shape[-1], -1)
+    else:
+        mask = np.squeeze(mask, axis=-1)
+    data_da = data_da.copy()
+    data_da.values[~mask] = 0
+    return data_da
 
 def negate_mask(mask):
     """Returns the negated mask.

@@ -52,7 +52,8 @@ class EOPatchVisualization:
     
     """
     def __init__(self, eopatch, feature, rgb=None, rgb_factor=3.5, vdims=None,
-                 timestamp_column='TIMESTAMP', geometry_column='geometry', pixel=False, mask=None):
+                 timestamp_column='TIMESTAMP', geometry_column='geometry', 
+                 pixel=False, mask=None):
         self.eopatch = eopatch
         self.feature = feature
         self.rgb = list(rgb) if isinstance(rgb, tuple) else rgb
