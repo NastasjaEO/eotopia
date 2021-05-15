@@ -9,7 +9,9 @@ import numpy as np
 
 from eolearn.core import FeatureTypeSet, FeatureParser
 
-from .utils.string_utils import string_to_variable
+import sys
+sys.path.append("D:/Code/eotopia/utils")
+from string_utils import string_to_variable
 
 def _get_eopatch_depth_coordinates(feature_name, data, names_of_channels=None):
     """ 

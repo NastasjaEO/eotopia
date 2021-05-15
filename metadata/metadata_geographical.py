@@ -9,8 +9,10 @@ import numpy as np
 
 from eolearn.core import FeatureTypeSet, FeatureParser
 
-from .metadata_temporal import _return_timestamps_of_eopatch
-from .metadata_eopatch import _get_eopatch_depth_coordinates
+import sys
+sys.path.append("D:/Code/eotopia/metadata")
+from metadata_temporal import _return_timestamps_of_eopatch
+from metadata_eopatch import _get_eopatch_depth_coordinates
 
 def get_eopatch_bbox(eopatch):
     return eopatch.bbox

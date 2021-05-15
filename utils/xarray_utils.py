@@ -7,7 +7,9 @@ Created on Fri May 14 14:11:23 2021
 
 import xarray as xr
 
-from .utils.dataframe_utils import feature_array_to_dataframe
+import sys
+sys.path.append("D:/Code/eotopia/utils")
+from dataframe_utils import feature_array_to_dataframe
 
 def eopatch_to_xrdataset(eopatch, remove_depth=True):
     """

@@ -18,14 +18,14 @@ from eolearn.core import FeatureType, FeatureTypeSet, FeatureParser
 import geoviews as gv
 import holoviews as hv
 
-from .utils.string_utils import string_to_variable
-from .utils.dataframe_utils import feature_array_to_dataframe
-from .utils.coordinate_utils import new_xarray_coordinates
+import sys
+sys.path.append("D:/Code/eotopia/utils")
+from string_utils import string_to_variable
+from dataframe_utils import feature_array_to_dataframe
+from coordinate_utils import new_xarray_coordinates
 
 PLOT_WIDTH = 800
 PLOT_HEIGHT = 500
-
-def plot_eopatch(eopatch)
 
 class EOPatchVisualization:
     """
