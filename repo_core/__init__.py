@@ -1,23 +1,21 @@
-# -*- coding: utf-8 -*-
 """
-Created on Sat May  8 15:54:16 2021
-
-@author: freeridingeo
+The following objects and functions are the core of eo-learn package
 """
 
 from sentinelhub import BBox, CRS
 
-from .data_types import DataType, DataTypeSet, DataFormat, OverwritePermission
-from .data_OOI_utilities import OOI, DataIO, DataParser, save_ooi, load_ooi
-from .data_OOI_utils import deep_eq, constant_pad, get_common_timestamps
-from .data_mask_utils import negate_mask
-from .data_bands_utils import bgr_to_rgb
+from .constants import FeatureType, FeatureTypeSet, FileFormat, OverwritePermission
+from .eodata import EOPatch
+from .eotask import EOTask, CompositeTask
+from .eoworkflow import EOWorkflow, LinearWorkflow, Dependency, WorkflowResults
+from .eoexecution import EOExecutor, execute_with_mp_lock
 
-from .OOI_task_classes import OOITask, CompositeTask
-from .OOI_workflow_classes import OOIWorkflow, LinearWorkflow, Dependency
+from .core_tasks import CopyTask, DeepCopyTask, SaveTask, LoadTask, AddFeature, RemoveFeature, RenameFeature,\
+    DuplicateFeature, InitializeFeature, MoveFeature, MergeFeatureTask, MapFeatureTask, ZipFeatureTask,\
+    ExtractBandsTask, CreateEOPatchTask, SaveToDisk, LoadFromDisk, MergeEOPatchesTask
 
-from eotopia.utils.filesystem_utils import get_filesystem
+from .fs_utils import get_filesystem, load_s3_filesystem
+from .utilities import deep_eq, negate_mask, constant_pad, get_common_timestamps, bgr_to_rgb, FeatureParser
 
-__version__ = '0.0.1'
 
-
+__version__ = '0.9.1'

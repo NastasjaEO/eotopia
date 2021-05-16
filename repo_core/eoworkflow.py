@@ -1,20 +1,25 @@
-# -*- coding: utf-8 -*-
 """
-The ooiworkflow module, together with ooitask and ooidata, provides core 
-building blocks for specifying and executing workflows.
+The eoworkflow module, together with eotask and eodata, provides core building blocks for specifying and executing
+workflows.
 
-A workflow is a directed (acyclic) graph composed of instances of OOITask objects. 
-Each task may take as input the results of other tasks and external arguments. 
-The external arguments are passed anew each time the workflow is executed. 
-The workflow builds the computational graph, performs dependency resolution, 
-and executes the tasks.
+A workflow is a directed (acyclic) graph composed of instances of EOTask objects. Each task may take as input the
+results of other tasks and external arguments. The external arguments are passed anew each time the workflow is
+executed. The workflow builds the computational graph, performs dependency resolution, and executes the tasks.
 If the input graph is cyclic, the workflow raises a `CyclicDependencyError`.
-The result of a workflow execution is an immutable mapping from tasks to results. 
-The result contains tasks with zero out-degree (i.e. terminal tasks).
 
-@author: freeridingeo
+The result of a workflow execution is an immutable mapping from tasks to results. The result contains tasks with
+zero out-degree (i.e. terminal tasks).
+
+The workflow can be exported to a DOT description language and visualized.
+
+Credits:
+Copyright (c) 2017-2019 Matej Aleksandrov, Matej Batič, Andrej Burja, Eva Erzin (Sinergise)
+Copyright (c) 2017-2019 Grega Milčinski, Matic Lubej, Devis Peresutti, Jernej Puc, Tomislav Slijepčević (Sinergise)
+Copyright (c) 2017-2019 Blaž Sovdat, Nejc Vesel, Jovan Višnjić, Anže Zupanc, Lojze Žust (Sinergise)
+
+This source code is licensed under the MIT license found in the LICENSE
+file in the root directory of this source tree.
 """
-
 import collections
 import logging
 import warnings
@@ -23,47 +28,42 @@ import copy
 
 import attr
 
-import sys
-sys.path.append("D:/Code/eotopia/core")
-from OOI_task_classes import OOITask
-sys.path.append("D:/Code/eotopia/graphs_networks")
-from workflow_graphs import DirectedGraph
+from .eotask import EOTask
+from .graph import DirectedGraph
+
 
 LOGGER = logging.getLogger(__name__)
 
+
 class CyclicDependencyError(ValueError):
-    """ 
-    This error is raised when trying to initialize `OOIWorkflow` with a 
-    cyclic dependency graph
+    """ This error is raised when trying to initialize `EOWorkflow` with a cyclic dependency graph
     """
 
-class OOIWorkflow:
-    """ 
-    A basic object for building workflows from a list of task dependencies
+
+class EOWorkflow:
+    """ A basic eo-learn object for building workflows from a list of task dependencies
 
     Example:
 
-            workflow = OOIWorkflow([  # task1, task2, task3 are initialized OOITasks
+        .. code-block:: python
+
+            workflow = EOWorkflow([  # task1, task2, task3 are initialized EOTasks
                 (task1, [], 'My first task'),
                 (task2, []),
                 (task3, [task1, task2], 'Task that depends on previous 2 tasks')
             ])
     """
-
     def __init__(self, dependencies, task_names=None):
         """
-        :param dependencies: A list of dependencies between tasks, 
-            specifying the computational graph.
+        :param dependencies: A list of dependencies between tasks, specifying the computational graph.
         :type dependencies: list(tuple or Dependency)
         """
         self.id_gen = _UniqueIdGenerator()
 
         if task_names:
-            warnings.warn("Parameter 'task_names' could be removed.\
-                          Everything can be specified with "
-                          "'dependencies' parameter, including task names", 
-                          DeprecationWarning, stacklevel=2)
-        
+            warnings.warn("Parameter 'task_names' will soon be removed. Everything can be specified with "
+                          "'dependencies' parameter, including task names", DeprecationWarning, stacklevel=2)
+
         self.dependencies = self._parse_dependencies(dependencies, task_names)
         self.uuid_dict = self._set_task_uuid(self.dependencies)
         self.dag = self.create_dag(self.dependencies)
@@ -71,38 +71,25 @@ class OOIWorkflow:
 
     @staticmethod
     def _parse_dependencies(dependencies, task_names):
-        """ 
-        Parses dependencies and adds names of task_names
+        """ Parses dependencies and adds names of task_names
 
         :param dependencies: Input of dependency parameter
         :type dependencies: list(tuple or Dependency)
         :param task_names: Human-readable names of tasks
-        :type task_names: dict(OOITask: str) or None
+        :type task_names: dict(EOTask: str) or None
         :return: List of dependencies
         :rtype: list(Dependency)
         """
-
-        parsed_dependencies = []
-        for i in range(len(dependencies)):
-            dep = dependencies[i]
-            if isinstance(dep, Dependency):
-                parsed_dependencies.append(dep)
-            else:
-                parsed_dependencies.append(Dependency(dep))
-        # parsed_dependencies = [dep if isinstance(dep, Dependency)\
-        #                        else Dependency(*dep) for dep in dependencies]
-
+        parsed_dependencies = [dep if isinstance(dep, Dependency) else Dependency(*dep) for dep in dependencies]
         for dep in parsed_dependencies:
             if task_names and dep.task in task_names:
                 dep.set_name(task_names[dep.task])
         return parsed_dependencies
 
     def _set_task_uuid(self, dependencies):
-        """ 
-        Adds universally unique user ids (UUID) to each task of the workflow
-        
-        :param dependencies: The list of dependencies between tasks 
-            defining the computational graph
+        """ Adds universally unique user ids (UUID) to each task of the workflow
+
+        :param dependencies: The list of dependencies between tasks defining the computational graph
         :type dependencies: list(Dependency)
         :return: A dictionary mapping UUID to dependencies
         :rtype: dict(str: Dependency)
@@ -111,17 +98,16 @@ class OOIWorkflow:
         for dep in dependencies:
             task = dep.task
             if task.private_task_config.uuid in uuid_dict:
-                raise ValueError('OOIWorkflow cannot execute the same\
-                                 instance of OOITask multiple times')
+                raise ValueError('EOWorkflow cannot execute the same instance of EOTask multiple times')
 
             task.private_task_config.uuid = self.id_gen.get_next()
             uuid_dict[task.private_task_config.uuid] = dep
+
         return uuid_dict
 
     def create_dag(self, dependencies):
-        """ 
-        Creates a directed graph from dependencies
-        
+        """ Creates a directed graph from dependencies
+
         :param dependencies: A list of Dependency objects
         :type dependencies: list(Dependency)
         :return: A directed graph of the workflow
@@ -132,10 +118,8 @@ class OOIWorkflow:
             for vertex in dep.inputs:
                 task_uuid = vertex.private_task_config.uuid
                 if task_uuid not in self.uuid_dict:
-                     raise ValueError('Task {}, which is an input of a\
-                                      task {}, is not part of the defined '
-                                     'workflow'.\
-                                    format(vertex.__class__.__name__, dep.name))
+                    raise ValueError('Task {}, which is an input of a task {}, is not part of the defined '
+                                     'workflow'.format(vertex.__class__.__name__, dep.name))
                 dag.add_edge(self.uuid_dict[task_uuid], dep)
             if not dep.inputs:
                 dag.add_vertex(dep)
@@ -143,11 +127,9 @@ class OOIWorkflow:
 
     @staticmethod
     def _schedule_dependencies(dag):
-        """ 
-        Computes an ordering < of tasks so that for any two tasks t and t' 
-        we have that if t depends on t' then t' < t. 
-        In words, all dependencies of a task precede the task in this ordering.
-        
+        """ Computes an ordering < of tasks so that for any two tasks t and t' we have that if t depends on t' then
+        t' < t. In words, all dependencies of a task precede the task in this ordering.
+
         :param dag: A directed acyclic graph representing dependencies between tasks.
         :type dag: DirectedGraph
         :return: A list of topologically ordered dependecies
@@ -155,9 +137,7 @@ class OOIWorkflow:
         """
         in_degrees = dict(dag.get_indegrees())
 
-        independent_vertices =\
-            collections.deque([vertex for vertex in dag\
-                               if dag.get_indegree(vertex) == 0])
+        independent_vertices = collections.deque([vertex for vertex in dag if dag.get_indegree(vertex) == 0])
         topological_order = []
         while independent_vertices:
             v_vertex = independent_vertices.popleft()
@@ -174,82 +154,47 @@ class OOIWorkflow:
         return topological_order
 
     def execute(self, input_args=None, monitor=False):
-        """ 
-        Executes the workflow
-        
-        :param input_args: External input arguments to the workflow. 
-            They have to be in a form of a dictionary where each key is an 
-            OOITask used in the workflow and each value is a dictionary or a 
-            tuple of arguments.
-        :type input_args: dict(OOITask: dict(str: object) or tuple(object))
+        """ Executes the workflow
+
+        :param input_args: External input arguments to the workflow. They have to be in a form of a dictionary where
+            each key is an EOTask used in the workflow and each value is a dictionary or a tuple of arguments.
+        :type input_args: dict(EOTask: dict(str: object) or tuple(object))
         :param monitor: If True workflow execution will be monitored
         :type monitor: bool
         :return: An immutable mapping containing results of terminal tasks
         :rtype: WorkflowResults
         """
         out_degs = dict(self.dag.get_outdegrees())
+
         input_args = self.parse_input_args(input_args)
-        results = WorkflowResults(self._execute_tasks(input_args=input_args, 
-                   out_degs=out_degs, monitor=monitor))
+
+        results = WorkflowResults(self._execute_tasks(input_args=input_args, out_degs=out_degs, monitor=monitor))
+
         LOGGER.debug('Workflow finished with %s', repr(results))
         return results
 
     @staticmethod
     def parse_input_args(input_args):
-        """ 
-        Parses OOIWorkflow input arguments provided by user and raises an 
-        error if something is wrong. This is done automatically in the process 
-        of workflow execution
+        """ Parses EOWorkflow input arguments provided by user and raises an error if something is wrong. This is
+        done automatically in the process of workflow execution
         """
         input_args = input_args if input_args else {}
         for task, args in input_args.items():
-            if not isinstance(task, OOITask):
-                raise ValueError('Invalid input argument {},\
-                                 should be an instance of OOiTask'.format(task))
+            if not isinstance(task, EOTask):
+                raise ValueError('Invalid input argument {}, should be an instance of EOTask'.format(task))
 
             if not isinstance(args, (tuple, dict)):
-                raise ValueError('Execution input arguments of each task\
-                                 should be a dictionary or a tuple, for task '
-                                 '{} got arguments of type {}'.\
-                                     format(task.__class__.__name__, type(args)))
+                raise ValueError('Execution input arguments of each task should be a dictionary or a tuple, for task '
+                                 '{} got arguments of type {}'.format(task.__class__.__name__, type(args)))
+
         return input_args
 
-    def _execute_task(self, *, dependency, input_args, intermediate_results, monitor):
-        """ Executes a task of the workflow
-        
-        :param dependency: A workflow dependency
-        :type dependency: Dependency
-        :param input_args: External task parameters.
-        :type input_args: dict
-        :param intermediate_results: The dictionary containing intermediate results, 
-            including the results of all
-        tasks that the current task depends on.
-        :type intermediate_results: dict
-        :return: The result of the task in dependency
-        :rtype: object
-        """
-        task = dependency.task
-        inputs =\
-            tuple(intermediate_results[self.uuid_dict[input_task.private_task_config.uuid]]
-                       for input_task in dependency.inputs)
-
-        kw_inputs = input_args.get(task, {})
-        if isinstance(kw_inputs, tuple):
-            inputs += kw_inputs
-            kw_inputs = {}
-
-        LOGGER.debug("Computing %s(*%s, **%s)", 
-                     task.__class__.__name__, str(inputs), str(kw_inputs))
-        return task(*inputs, **kw_inputs, monitor=monitor)
-
     def _execute_tasks(self, *, input_args, out_degs, monitor):
-        """ 
-        Executes tasks comprising the workflow in the predetermined order
-        
+        """ Executes tasks comprising the workflow in the predetermined order
+
         :param input_args: External input arguments to the workflow.
         :type input_args: Dict
-        :param out_degs: Dictionary mapping vertices (task IDs) to their 
-            out-degrees. (The out-degree equals the number
+        :param out_degs: Dictionary mapping vertices (task IDs) to their out-degrees. (The out-degree equals the number
         of tasks that depend on this task.)
         :type out_degs: Dict
         :return: A dictionary mapping dependencies to task results
@@ -263,22 +208,44 @@ class OOIWorkflow:
                                         intermediate_results=intermediate_results,
                                         monitor=monitor)
 
-        intermediate_results[dep] = result
-        self._relax_dependencies(dependency=dep,
+            intermediate_results[dep] = result
+
+            self._relax_dependencies(dependency=dep,
                                      out_degrees=out_degs,
                                      intermediate_results=intermediate_results)
 
         return intermediate_results
 
+    def _execute_task(self, *, dependency, input_args, intermediate_results, monitor):
+        """ Executes a task of the workflow
+
+        :param dependency: A workflow dependency
+        :type dependency: Dependency
+        :param input_args: External task parameters.
+        :type input_args: dict
+        :param intermediate_results: The dictionary containing intermediate results, including the results of all
+        tasks that the current task depends on.
+        :type intermediate_results: dict
+        :return: The result of the task in dependency
+        :rtype: object
+        """
+        task = dependency.task
+        inputs = tuple(intermediate_results[self.uuid_dict[input_task.private_task_config.uuid]]
+                       for input_task in dependency.inputs)
+
+        kw_inputs = input_args.get(task, {})
+        if isinstance(kw_inputs, tuple):
+            inputs += kw_inputs
+            kw_inputs = {}
+
+        LOGGER.debug("Computing %s(*%s, **%s)", task.__class__.__name__, str(inputs), str(kw_inputs))
+        return task(*inputs, **kw_inputs, monitor=monitor)
+
     def _relax_dependencies(self, *, dependency, out_degrees, intermediate_results):
-        """ 
-        Relaxes dependencies incurred by ``task_id``. 
-        After the task with ID ``task_id`` has been successfully executed, 
-        all the tasks it depended on are updated. 
-        If ``task_id`` was the last remaining dependency of a task
-        ``t`` then ``t``'s result is removed from memory and, 
-        depending on ``remove_intermediate``, from disk.
-        
+        """ Relaxes dependencies incurred by ``task_id``. After the task with ID ``task_id`` has been successfully
+        executed, all the tasks it depended on are updated. If ``task_id`` was the last remaining dependency of a task
+        ``t`` then ``t``'s result is removed from memory and, depending on ``remove_intermediate``, from disk.
+
         :param dependency: A workflow dependency
         :type dependency: Dependency
         :param out_degrees: Out-degrees of tasks
@@ -293,18 +260,14 @@ class OOIWorkflow:
             out_degrees[dep] -= 1
 
             if out_degrees[dep] == 0:
-                LOGGER.debug("Removing intermediate result for %s", 
-                             current_task.__class__.__name__)
+                LOGGER.debug("Removing intermediate result for %s", current_task.__class__.__name__)
                 del intermediate_results[dep]
 
     def get_tasks(self):
-        """ 
-        Returns an ordered dictionary {task_name: task} of all tasks within 
-        this workflow
-        
-        :return: Ordered dictionary with key being task_name (str) and 
-            an instance of a corresponding task from this workflow. 
-            The order of tasks is the same as in which they will be executed.
+        """ Returns an ordered dictionary {task_name: task} of all tasks within this workflow
+
+        :return: Ordered dictionary with key being task_name (str) and an instance of a corresponding task from this
+            workflow. The order of tasks is the same as in which they will be executed.
         :rtype: OrderedDict
         """
         task_dict = collections.OrderedDict()
@@ -317,82 +280,78 @@ class OOIWorkflow:
                     count += 1
 
                 task_name = dep.get_custom_name(count)
+
             task_dict[task_name] = dep.task
+
         return task_dict
 
     def get_dot(self):
-        """ 
-        Generates the DOT description of the underlying computational graph
-        
+        """ Generates the DOT description of the underlying computational graph
+
         :return: The DOT representation of the computational graph
         :rtype: Digraph
         """
-        ## TODO!
-#        visualization = self._get_visualization()
-#        return visualization.get_dot()
+        visualization = self._get_visualization()
+        return visualization.get_dot()
 
     def dependency_graph(self, filename=None):
-        """ 
-        Visualize the computational graph
-        
-        :param filename: Filename of the output image together with 
-            file extension. Supported formats: `png`, `jpg`,
+        """ Visualize the computational graph
+
+        :param filename: Filename of the output image together with file extension. Supported formats: `png`, `jpg`,
             `pdf`, ... . Check `graphviz` Python package for more options
         :type filename: str
-        :return: The DOT representation of the computational graph, with 
-            some more formatting
+        :return: The DOT representation of the computational graph, with some more formatting
         :rtype: Digraph
         """
-#        visualization = self._get_visualization()
-#        return visualization.dependency_graph(filename=filename)
+        visualization = self._get_visualization()
+        return visualization.dependency_graph(filename=filename)
 
     def _get_visualization(self):
-        """ 
-        Helper method which provides OOIWorkflowVisualization object
+        """ Helper method which provides EOWorkflowVisualization object
         """
-        ## TODO
         # pylint: disable=import-outside-toplevel,raise-missing-from
-        #from eolearn.visualization import EOWorkflowVisualization
-        #return EOWorkflowVisualization(self)
+        try:
+            from eolearn.visualization import EOWorkflowVisualization
+        except ImportError:
+            raise RuntimeError('Subpackage eo-learn-visualization has to be installed in order to use EOWorkflow '
+                               'visualization methods')
+        return EOWorkflowVisualization(self)
 
-class LinearWorkflow(OOIWorkflow):
-    """ 
-    A linear version of OOIWorkflow where each tasks only gets results of the 
-    previous task
+
+class LinearWorkflow(EOWorkflow):
+    """ A linear version of EOWorkflow where each tasks only gets results of the previous task
 
     Example:
+
+        .. code-block:: python
+
             workflow = LinearWorkflow(task1, task2, task3)
     """
     def __init__(self, *tasks, **kwargs):
         """
         :param tasks: Tasks in the order of execution
-        :type tasks: OOITask
+        :type tasks: EOTask
         """
         tasks = [self._parse_task(task) for task in tasks]
         tasks = self._make_tasks_unique(tasks)
 
-        dependencies = [(task, [tasks[idx - 1][0]]\
-                         if idx > 0 else [], name) for idx, (task, name)\
-                        in enumerate(tasks)]
+        dependencies = [(task, [tasks[idx - 1][0]] if idx > 0 else [], name) for idx, (task, name) in enumerate(tasks)]
         super().__init__(dependencies, **kwargs)
 
     @staticmethod
     def _parse_task(task):
-        """ 
-        Parses input task
+        """ Parses input task
         """
-        if isinstance(task, OOITask):
+        if isinstance(task, EOTask):
             return task, None
         if isinstance(task, (tuple, list)) and len(task) == 2:
             return task
-        raise ValueError('Cannot parse {}, expected an instance of\
-                         OOIask or a tuple (OOITask, name)'.format(task))
+
+        raise ValueError('Cannot parse {}, expected an instance of EOTask or a tuple (EOTask, name)'.format(task))
 
     @staticmethod
     def _make_tasks_unique(tasks):
-        """ 
-        If the same instances of tasks are given to LinearWorkflow, this will 
-        deep copy them
+        """ If the same instances of tasks are given to LinearWorkflow, this will deep copy them
         """
         unique_tasks = []
         prev_tasks = set()
@@ -406,68 +365,60 @@ class LinearWorkflow(OOIWorkflow):
 
         return unique_tasks
 
+
 @attr.s(eq=False)  # eq=False preserves the original hash
 class Dependency:
-    """ 
-    Class representing a node in OOIWorkflow graph
-    
-    :param task: An instance of OOITask
+    """ Class representing a node in EOWorkflow graph
+
+    :param task: An instance of EOTask
     :type task: EOTask
-    :param inputs: A list of OOITask instances which are dependencies 
-        of the given `task`
-    :type inputs: list(OOITask) or OOITask
+    :param inputs: A list of EOTask instances which are dependencies of the given `task`
+    :type inputs: list(EOTask) or EOTask
     :param name: Name of the Dependency node
     :type name: str or None
     """
-    task = attr.ib(default=None)  # validator parameter could be used,                                     # but its error msg is ugly
+    task = attr.ib(default=None)  # validator parameter could be used, but its error msg is ugly
     inputs = attr.ib(factory=list)
     name = attr.ib(default=None)
 
     def __attrs_post_init__(self):
-        """ 
-        This is executed right after init method
+        """ This is executed right after init method
         """
-#        if not isinstance(self.task, OOITask):
-#            raise ValueError('Value {} should be an instance of {}'.\
-#                             format(self.task, OOITask.__name__))
+        if not isinstance(self.task, EOTask):
+            raise ValueError('Value {} should be an instance of {}'.format(self.task, EOTask.__name__))
         self.task = self.task
 
-        if isinstance(self.inputs, OOITask):
+        if isinstance(self.inputs, EOTask):
             self.inputs = [self.inputs]
         if not isinstance(self.inputs, (list, tuple)):
             raise ValueError('Value {} should be a list'.format(self.inputs))
         for input_task in self.inputs:
-            if not isinstance(input_task, OOITask):
-                raise ValueError('Value {} should be an instance of {}'.\
-                                 format(input_task, OOITask.__name__))
+            if not isinstance(input_task, EOTask):
+                raise ValueError('Value {} should be an instance of {}'.format(input_task, EOTask.__name__))
 
         if self.name is None:
             self.name = self.task.__class__.__name__
 
     def set_name(self, name):
-        """ 
-        Sets a new name
+        """ Sets a new name
         """
         self.name = name
 
     def get_custom_name(self, number=0):
-        """
-        Provides custom task name according to given number. E.g. FooTask -> FooTask
+        """ Provides custom task name according to given number. E.g. FooTask -> FooTask
         """
         if number:
             return '{}_{}'.format(self.name, number)
         return self.name
 
+
 class WorkflowResults(collections.abc.Mapping):
-    """ 
-    The result of a workflow is an (immutable) dictionary mapping 
-    [1] from OOITasks to results of the workflow.
-    When an OOITask is passed as an index, its UUID, assigned during 
-    workflow execution, is used as the key 
-    (as opposed to the result of invoking __repr__ on the OOI task). 
-    This ensures that indexing by task works even after pickling,
+    """ The result of a workflow is an (immutable) dictionary mapping [1] from EOTasks to results of the workflow.
+
+    When an EOTask is passed as an index, its UUID, assigned during workflow execution, is used as the key (as opposed
+    to the result of invoking __repr__ on the EO task). This ensures that indexing by task works even after pickling,
     and makes dealing with checkpoints more convenient.
-    
+
     [1] https://docs.python.org/3.6/library/collections.abc.html#collections-abstract-base-classes
     """
     def __init__(self, results):
@@ -475,7 +426,7 @@ class WorkflowResults(collections.abc.Mapping):
         self._uuid_dict = {dep.task.private_task_config.uuid: dep for dep in results}
 
     def __getitem__(self, item):
-        if isinstance(item, OOITask):
+        if isinstance(item, EOTask):
             item = self._uuid_dict[item.private_task_config.uuid]
         return self._result[item]
 
@@ -486,7 +437,7 @@ class WorkflowResults(collections.abc.Mapping):
         return iter(self._result)
 
     def __contains__(self, item):
-        if isinstance(item, OOITask):
+        if isinstance(item, EOTask):
             item = self._uuid_dict.get(item.private_task_config.uuid, item)
         return item in self._result
 
@@ -510,12 +461,12 @@ class WorkflowResults(collections.abc.Mapping):
 
     def get(self, key, default=None):
         """ Dictionary get method """
-        if isinstance(key, OOITask):
+        if isinstance(key, EOTask):
             key = self._uuid_dict[key.private_task_config.uuid]
         return self._result.get(key, default)
 
-    def ooi(self):
-        """ Return the OOI from the workflow result """
+    def eopatch(self):
+        """ Return the EOPatch from the workflow result """
         return list(self.values())[-1]
 
     def __repr__(self):
@@ -523,15 +474,17 @@ class WorkflowResults(collections.abc.Mapping):
 
         for _, dep in self._uuid_dict.items():
             result_repr = repr(self._result[dep]).replace('\n', '\n    ')
-            dependency_repr = '{}({}):\n    {}'.\
-                format(Dependency.__name__, dep.name, result_repr)
+            dependency_repr = '{}({}):\n    {}'.format(Dependency.__name__, dep.name, result_repr)
+
             repr_list.append(dependency_repr)
+
         return '\n  '.join(repr_list) + '\n)'
 
+
 class _UniqueIdGenerator:
-    """ 
-    Generator of unique IDs, which is used in workflows only
+    """ Generator of unique IDs, which is used in workflows only
     """
+
     MAX_UUIDS = 2 ** 20
 
     def __init__(self):
@@ -540,6 +493,7 @@ class _UniqueIdGenerator:
     def _next(self):
         if len(self.uuids) + 1 > _UniqueIdGenerator.MAX_UUIDS:
             raise MemoryError('Limit of max UUIDs reached')
+
         while True:
             uid = uuid.uuid4()
             if uid not in self.uuids:

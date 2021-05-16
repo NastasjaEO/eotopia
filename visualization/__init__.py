@@ -1,1 +1,13 @@
-__path__ = __import__('pkgutil').extend_path(__path__, __name__)
+"""
+A collection of visualization utilities
+"""
+
+from .eoworkflow_visualization import EOWorkflowVisualization
+from .eoexecutor_visualization import EOExecutorVisualization
+
+try:
+    from .eopatch_visualization import EOPatchVisualization
+except ImportError:
+    pass
+
+__version__ = '0.9.0'
