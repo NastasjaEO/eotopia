@@ -689,7 +689,8 @@ class EOPatch:
         """
         # pylint: disable=import-outside-toplevel,raise-missing-from
         try:
-            from eolearn.visualization import EOPatchVisualization
+            sys.path.append("D:/Code/eotopia/visualization_eopatch")
+            from eopatch_visualization import EOPatchVisualization
         except ImportError:
             raise RuntimeError('Subpackage eo-learn-visualization has to be installed with an option [FULL] in order '
                                'to use plot method')

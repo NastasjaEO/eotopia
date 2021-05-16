@@ -16,9 +16,11 @@ from abc import abstractmethod
 import fs
 import numpy as np
 
-from .eodata import EOPatch
-from .eotask import EOTask
-from .fs_utils import get_filesystem
+import sys
+sys.path.append("D:/Code/eotopia/repo_core")
+from eodata import EOPatch
+from eotask import EOTask
+from fs_utils import get_filesystem
 
 warnings.simplefilter('default', DeprecationWarning)
 

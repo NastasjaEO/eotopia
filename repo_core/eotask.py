@@ -24,7 +24,10 @@ from abc import ABC, abstractmethod
 
 import attr
 
-from .utilities import FeatureParser
+## TODO!
+# make using sys obsolete
+sys.path.append("D:/Code/eotopia/repo_core")
+from utilities import FeatureParser
 
 LOGGER = logging.getLogger(__name__)
 

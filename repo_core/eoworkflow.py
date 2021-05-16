@@ -28,9 +28,11 @@ import copy
 
 import attr
 
-from .eotask import EOTask
-from .graph import DirectedGraph
-
+import sys
+sys.path.append("D:/Code/eotopia/repo_core")
+from eodata import EOPatch
+from eotask import EOTask
+from graph import DirectedGraph
 
 LOGGER = logging.getLogger(__name__)
 
@@ -311,7 +313,8 @@ class EOWorkflow:
         """
         # pylint: disable=import-outside-toplevel,raise-missing-from
         try:
-            from eolearn.visualization import EOWorkflowVisualization
+            sys.path.append("D:/Code/eotopia/visualization_eopatch")
+            from eoworkflow_visualization import EOWorkflowVisualization
         except ImportError:
             raise RuntimeError('Subpackage eo-learn-visualization has to be installed in order to use EOWorkflow '
                                'visualization methods')
