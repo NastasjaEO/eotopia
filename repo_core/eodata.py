@@ -624,6 +624,8 @@ class EOPatch:
         :type ref_date: datetime object
         :param scale_time: scale seconds by factor. If `60`, time will be in minutes, if `3600` hours
         :type scale_time: int
+        
+        ts = eopatch.time_series()
         """
 
         if not self.timestamp:
@@ -642,6 +644,8 @@ class EOPatch:
         :type timestamps: list of datetime objects
         :return: set of removed frames' dates
         :rtype: set of datetime objects
+        
+        eopatch.consolidate_timestamps(ts)
         """
         remove_from_patch = set(self.timestamp).difference(timestamps)
         remove_from_patch_idxs = [self.timestamp.index(rm_date) for rm_date in remove_from_patch]
@@ -758,7 +762,7 @@ class _FeatureDict(dict):
     def print_featurenames(self, feature_type):
         """Prints the names of the features in an eopatch."""
         data_of_featuretype = self.__getitem__(feature_type)
-        featuredict = data_of_featuretype.get_dict()
+        featuredict = self.data_of_featuretype.get_dict()
         for i in featuredict:
             print(i)
 
