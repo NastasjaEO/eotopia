@@ -25,9 +25,14 @@ import warnings
 
 from tqdm.auto import tqdm
 
-from .eoworkflow import EOWorkflow
+import shapely
+shapely.speedups.disable()
 
-from .utilities import LogFileFilter
+
+import sys
+sys.path.append("D:/Code/eotopia/repo_core")
+from eoworkflow import EOWorkflow
+from utilities import LogFileFilter
 
 LOGGER = logging.getLogger(__name__)
 
