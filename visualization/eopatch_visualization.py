@@ -28,7 +28,7 @@ from sentinelhub import CRS
 
 from eolearn.core import FeatureType, FeatureTypeSet, FeatureParser
 
-from .xarray_utils import array_to_dataframe, new_coordinates, string_to_variable
+from .xarray_utils_viz import array_to_dataframe, new_coordinates, string_to_variable
 
 PLOT_WIDTH = 800
 PLOT_HEIGHT = 500

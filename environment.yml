@@ -35,7 +35,11 @@ dependencies:
 
           # pip requirements
           # Use double '==' signs!
+          - pygments==2.7.2
+
           - lxml>=4.6.1
+          - jinja2==2.11.2
+
           - sentinelhub==3.2.1
           - rasterio==1.1.8
           - xarray==0.16.2
@@ -44,9 +48,10 @@ dependencies:
           - cartopy==0.19.0
           - shapely==1.7.1
           - numpy>=1.19.0
-          - eo-learn-core==0.9.1
-          - eo-learn-visualization==0.9.0
+
+          # Plotting
           - imageio==2.9.0
           - geoviews==1.9.1
           - hvplot==0.7.1
           - holoviews==1.9.5
+          - graphviz==0.16
