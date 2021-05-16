@@ -26,7 +26,12 @@ from shapely.geometry import Polygon
 
 from sentinelhub import CRS
 
-from eolearn.core import FeatureType, FeatureTypeSet, FeatureParser
+## TODO!
+# make using sys obsolete
+import sys
+sys.path.append("D:/Code/eotopia/repo_core")
+from constants import FeatureType, FeatureTypeSet
+from utilities import FeatureParser
 
 from .xarray_utils_viz import array_to_dataframe, new_coordinates, string_to_variable
 

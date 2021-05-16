@@ -19,7 +19,11 @@ import numpy as np
 import geopandas as gpd
 from geopandas.testing import assert_geodataframe_equal
 
-from .constants import FeatureType
+## TODO!
+# make using sys obsolete
+import sys
+sys.path.append("D:/Code/eotopia/repo_core")
+from constants import FeatureType
 
 LOGGER = logging.getLogger(__name__)
 

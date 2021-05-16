@@ -19,8 +19,12 @@ import numpy as np
 from geopandas import GeoDataFrame, GeoSeries
 from sentinelhub.os_utils import sys_is_windows
 
-from .constants import FeatureType, FileFormat, OverwritePermission
-from .utilities import FeatureParser
+## TODO!
+# make using sys obsolete
+import sys
+sys.path.append("D:/Code/eotopia/repo_core")
+from constants import FeatureType, FileFormat, OverwritePermission
+from utilities import FeatureParser
 
 
 def save_eopatch(eopatch, filesystem, patch_location, features=..., overwrite_permission=OverwritePermission.ADD_ONLY,

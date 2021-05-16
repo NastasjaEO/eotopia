@@ -17,8 +17,12 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from .constants import FeatureType
-from .utilities import FeatureParser
+## TODO!
+# make using sys obsolete
+import sys
+sys.path.append("D:/Code/eotopia/repo_core")
+from constants import FeatureType
+from utilities import FeatureParser
 
 
 def merge_eopatches(*eopatches, features=..., time_dependent_op=None, timeless_op=None):
