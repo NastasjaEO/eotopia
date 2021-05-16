@@ -2,7 +2,7 @@
 """
 Created on Thu May  6 19:23:51 2021
 
-@author: nasta
+@author: freeridingeo
 """
 
 import os
@@ -16,7 +16,7 @@ def parse_requirements(file):
 
 
 def get_version():
-    for line in open(os.path.join(os.path.dirname(__file__), 'core', 
+    for line in open(os.path.join(os.path.dirname(__file__), 'repo_core', 
                                   '__init__.py')):
         if line.find("__version__") >= 0:
             version = line.split("=")[1].strip()
@@ -25,10 +25,10 @@ def get_version():
 
 
 setup(
-    name='eotopia-core',
+    name='eotopia',
     python_requires='>=3.6',
     version=get_version(),
-    description='EOtopia Core',
+    description='EOtopia',
     author='Nastasja',
     author_email='nastasja.scholz@gmail.com',
     packages=find_packages(),
