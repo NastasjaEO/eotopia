@@ -755,6 +755,13 @@ class _FeatureDict(dict):
         """Returns a Python dictionary of features and value."""
         return dict(self)
 
+    def print_featurenames(self, feature_type):
+        """Prints the names of the features in an eopatch."""
+        data_of_featuretype = self.__getitem__(feature_type)
+        featuredict = data_of_featuretype.get_dict()
+        for i in featuredict:
+            print(i)
+
     def _parse_feature_value(self, value):
         """ Checks if value fits the feature type. If not it tries to fix it or raise an error
 
