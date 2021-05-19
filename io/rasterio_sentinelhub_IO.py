@@ -722,4 +722,55 @@ class SentinelHubDemTask(SentinelHubEvalscriptTask):
         super().__init__(evalscript=evalscript, features=[feature], 
                          data_collection=data_collection, **kwargs)
 
+class SentinelHubSen2corTask(SentinelHubInputTask):
+    """
+    Adds SCL (scene classification), CLD (cloud probability) or SNW (snow probability) 
+    (or any their combination)
+    Sen2Cor classification results to EOPatch's MASK or DATA feature. 
+    The feature is added to MASK (SCL) or DATA (CLD, SNW) feature types of EOPatch. 
+    The feature names are set to be SCL, CLD or SNW.
+    Sen2Cor's scene classification (SCL) contains 11 classes with the following values and meanings:
+       * 1 - SC_SATURATED_DEFECTIVE
+       * 2 - SC_DARK_FEATURE_SHADOW
+       * 3 - SC_CLOUD_SHADOW
+       * 4 - VEGETATION
+       * 5 - NOT-VEGETATED
+       * 6 - WATER
+       * 7 - SC_CLOUD_LOW_PROBA / UNCLASSIFIED
+       * 8 - SC_CLOUD_MEDIUM_PROBA
+       * 9 - CLOUD_HIGH_PROBABILITY
+       * 10 - THIN_CIRRUS
+       * 11 - SNOW
+    """
+    def __init__(self, sen2cor_classification, 
+                 data_collection=DataCollection.SENTINEL2_L2A, **kwargs):
+        """
+        :param sen2cor_classification: 
+                "SCL" (scene classification), "CLD" (cloud probability) or "SNW"
+                (snow probability) masks to be retrieved. 
+                Also a list of their combination (e.g. ["SCL","CLD"])
+        :param sen2cor_classification: str or [str]
+        :param kwargs: Additional arguments that will be passed to the `SentinelHubInputTask`
+        """
+        # definition of possible types and target features
+        classification_types = {
+            'SCL': FeatureType.MASK,
+            'CLD': FeatureType.DATA,
+            'SNW': FeatureType.DATA
+        }
+
+        if isinstance(sen2cor_classification, str):
+            sen2cor_classification = [sen2cor_classification]
+
+        for s2c in sen2cor_classification:
+            if s2c not in classification_types:
+                raise ValueError(f'Unsupported Sen2Cor classification type: {s2c}. '
+                                 f'Possible types are: {classification_types}!')
+
+        if data_collection != DataCollection.SENTINEL2_L2A:
+            raise ValueError('Sen2Cor classification layers are only\
+                             available on Sentinel-2 L2A data.')
+
+        features = [(classification_types[s2c], s2c) for s2c in sen2cor_classification]
+        super().__init__(additional_data=features, data_collection=data_collection, **kwargs)
 
