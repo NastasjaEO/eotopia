@@ -686,5 +686,40 @@ class SentinelHubInputTask(SentinelHubInputBase):
         return np.asarray(list(feature_arrays), dtype=dtype).reshape(*shape, 1)
 
 
+class SentinelHubDemTask(SentinelHubEvalscriptTask):
+    """
+    Adds DEM data (one of the `collections <https://docs.sentinel-hub.com/api/latest/data/dem/#deminstance>`__) to
+        DATA_TIMELESS EOPatch feature.
+    """
+
+    def __init__(self, feature=None, data_collection=DataCollection.DEM, **kwargs):
+        if feature is None:
+            feature = (FeatureType.DATA_TIMELESS, 'dem')
+        elif isinstance(feature, str):
+            feature = (FeatureType.DATA_TIMELESS, feature)
+
+        if feature[0].is_time_dependent():
+            raise ValueError("DEM feature should be timeless!")
+
+        ft_name = feature[1]
+        evalscript = f"""
+            //VERSION=3
+            function setup() {{
+                return {{
+                    input: ["DEM"],
+                    output: {{
+                        id: "{ft_name}",
+                        bands: 1,
+                        sampleType: SampleType.UINT16
+                    }}
+                }}
+            }}
+            function evaluatePixel(sample) {{
+                return {{ {ft_name}: [sample.DEM] }}
+            }}
+        """
+
+        super().__init__(evalscript=evalscript, features=[feature], 
+                         data_collection=data_collection, **kwargs)
 
 
