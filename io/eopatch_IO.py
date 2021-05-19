@@ -486,6 +486,5 @@ class ImportFromTiff(BaseLocalIo):
         eopatch[feature_type][feature_name] = data
         return eopatch
 
-    © 2021 GitHub
 
 
