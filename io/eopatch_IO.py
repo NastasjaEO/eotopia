@@ -359,7 +359,133 @@ class ExportToTiff(BaseLocalIo):
                                   src_crs, src_transform)
         return eopatch
 
+class ImportFromTiff(BaseLocalIo):
+    """ 
+    Task for importing data from a Geo-Tiff file into an EOPatch
+    
+    The task can take an existing EOPatch and read the part of Geo-Tiff image, 
+    which intersects with its bounding box, into a new feature. 
+    But if no EOPatch is given it will create a new EOPatch, read entire 
+    Geo-Tiff image into a feature and set a bounding box of the new EOPatch.
+    Note that if Geo-Tiff file is not completely spatially aligned with location 
+    of given EOPatch it will try to fit it as best as possible. 
+    However it will not do any spatial resampling or interpolation on Geo-TIFF data.
+    """
+    def __init__(self, feature, folder=None, *, timestamp_size=None, **kwargs):
+        """
+        :param feature: EOPatch feature into which data will be imported
+        :type feature: (FeatureType, str)
+        :param folder: A directory containing image files or a path of an image file
+        :type folder: str
+        :param timestamp_size: In case data will be imported into time-dependant 
+            feature this parameter can be used to specify time dimension. 
+            If not specified, time dimension will be the same as size of FeatureType.TIMESTAMP
+            feature. If FeatureType.TIMESTAMP does not exist it will be set to 1.
+            When converting data into a feature channels of given tiff image should be in order
+            T(1)B(1), T(1)B(2), ..., T(1)B(N), T(2)B(1), T(2)B(2), ..., T(2)B(N), ..., ..., T(M)B(N)
+            where T and B are the time and band indices.
+        :type timestamp_size: int
+        :param image_dtype: Type of data of new feature imported from tiff image
+        :type image_dtype: numpy.dtype
+        :param no_data_value: Values where given Geo-Tiff image does not cover EOPatch
+        :type no_data_value: int or float
+        :param config: A configuration object containing AWS credentials
+        :type config: SHConfig
+        """
+        super().__init__(feature, folder=folder, **kwargs)
+        self.timestamp_size = timestamp_size
 
+    @staticmethod
+    def _get_reading_window(width, height, data_bbox, eopatch_bbox):
+        """ 
+        Calculates a window in pixel coordinates for which data will be read from an image
+        """
+        if eopatch_bbox.crs is not data_bbox.crs:
+            eopatch_bbox = eopatch_bbox.transform(data_bbox.crs)
 
+        data_ul_x, data_lr_y = data_bbox.lower_left
+        data_lr_x, data_ul_y = data_bbox.upper_right
+
+        res_x = abs(data_ul_x - data_lr_x) / width
+        res_y = abs(data_ul_y - data_lr_y) / height
+
+        ul_x, lr_y = eopatch_bbox.lower_left
+        lr_x, ul_y = eopatch_bbox.upper_right
+
+        # If these coordinates wouldn't be rounded here, rasterio.io.DatasetReader.read would round
+        # them in the same way
+        top = round((data_ul_y - ul_y) / res_y)
+        left = round((ul_x - data_ul_x) / res_x)
+        bottom = round((data_ul_y - lr_y) / res_y)
+        right = round((lr_x - data_ul_x) / res_x)
+
+        return (top, bottom), (left, right)
+
+    def execute(self, eopatch=None, *, filename=None):
+        """ 
+        Execute method which adds a new feature to the EOPatch
+        
+        :param eopatch: input EOPatch or None if a new EOPatch should be created
+        :type eopatch: EOPatch or None
+        :param filename: filename of tiff file or None if entire path has already been specified in `folder` parameter
+            of task initialization.
+        :type filename: str, list of str or None
+        :return: New EOPatch with added raster layer
+        :rtype: EOPatch
+        """
+        feature_type, feature_name = next(self.feature())
+        if eopatch is None:
+            eopatch = EOPatch()
+
+        filesystem, filename_paths =\
+            self._get_filesystem_and_paths(filename, eopatch.timestamp, 
+                                           create_paths=False)
+
+        with filesystem:
+            data = []
+            for path in filename_paths:
+                with filesystem.openbin(path, 'r') as file_handle:
+                    with rasterio.open(file_handle) as src:
+
+                        data_bbox = BBox(src.bounds, CRS(src.crs.to_epsg()))
+                        if eopatch.bbox is None:
+                            eopatch.bbox = data_bbox
+
+                        read_window = self._get_reading_window(src.width, src.height, 
+                                                               data_bbox, 
+                                                               eopatch.bbox)
+
+                        data.append(src.read(window=read_window, 
+                                             boundless=True, 
+                                             fill_value=self.no_data_value))
+        data = np.concatenate(data, axis=0)
+
+        if self.image_dtype is not None:
+            data = data.astype(self.image_dtype)
+
+        if not feature_type.is_spatial():
+            data = data.flatten()
+
+        if feature_type.is_timeless():
+            data = np.moveaxis(data, 0, -1)
+        else:
+            channels = data.shape[0]
+
+            times = self.timestamp_size
+            if times is None:
+                times = len(eopatch.timestamp) if eopatch.timestamp else 1
+
+            if channels % times != 0:
+                raise ValueError('Cannot import as a time-dependant feature\
+                                 because the number of tiff image channels '
+                                 'is not divisible by the number of timestamps')
+
+            data = data.reshape((times, channels // times) + data.shape[1:])
+            data = np.moveaxis(data, 1, -1)
+
+        eopatch[feature_type][feature_name] = data
+        return eopatch
+
+    © 2021 GitHub
 
 
