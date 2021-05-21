@@ -31,7 +31,7 @@ def save_rgb_2_png(patch, feature_name, inference=False):
     """Save RGB, spectral info and labeled images for the coming deep learning
     
     Args:
-        patch: Saved eopatches for deep learning LULC training and prediction 
+        patch: Saved eopatches for deep learning feature training and prediction 
     Return:
         None: images in the PNG.
     """

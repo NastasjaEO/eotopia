@@ -6,6 +6,7 @@ Created on Fri May 21 11:55:50 2021
 """
 
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -32,8 +33,13 @@ def prepare_large_aoi_grid(vectorfile, t_crs, gr_sz, res=10, save=False):
     """
 
     aoi_geo = gpd.read_file(vectorfile)
-    aoi_reprj = aoi_geo.to_crs(crs=t_crs.pyproj_crs())
+    
+    if aoi_geo.crs == t_crs:
+        aoi_reprj = aoi_geo.to_crs(crs=t_crs.pyproj_crs())
+    else:
+        aoi_reprj = aoi_geo
     aoi_shape = aoi_reprj.geometry.values[-1]
+    print(aoi_shape)
 
     data_res = res
     width_pix = int((aoi_shape.bounds[2] - aoi_shape.bounds[0])/data_res)
@@ -45,7 +51,7 @@ def prepare_large_aoi_grid(vectorfile, t_crs, gr_sz, res=10, save=False):
 
     tile_splitter = BBoxSplitter([aoi_shape], t_crs, (width_grid, heigth_grid))
     print("The area is splitted into a grid with {} by {} tiles!"\
-          .format(width_grid, heigth_grid))
+         .format(width_grid, heigth_grid))
 
     tiles = np.array(tile_splitter.get_bbox_list())
     info_list = np.array(tile_splitter.get_info_list())
@@ -67,3 +73,32 @@ def prepare_large_aoi_grid(vectorfile, t_crs, gr_sz, res=10, save=False):
         gdf.to_file(os.path.join(tile_path, nm))
 
     return patchID, tiles
+
+from sentinelhub import CRS
+
+MAIN_FOLDER = Path("D:/Code/notebooks/classification")
+DATA_FOLDER = MAIN_FOLDER / 'InputData_landcover'
+VECTOR_DATA_FOLDER = DATA_FOLDER / 'Data'
+
+target_crs = CRS.UTM_33N
+
+time_interval = ['2017-01-01', '2017-12-31']
+landclass_codes = [1, 2, 3, 4, 5, 6, 8, 9] # land classes values taken from the above shapefile
+grid_sz = 168 #the image size to train deep learning
+inference = False 
+
+country = gpd.read_file(VECTOR_DATA_FOLDER / 'svn_border_4326.geojson')
+country_crs = target_crs
+
+train_shp = VECTOR_DATA_FOLDER / "large_training_aoi.geojson"
+test_shp = VECTOR_DATA_FOLDER / "large_test_aoi.shp" # switch to a smaller shapefile for visualization later
+
+train_polyg = gpd.read_file(train_shp)
+test_polyg = gpd.read_file(test_shp)
+
+# reproject the polygons 
+country = country.to_crs(crs=target_crs.pyproj_crs())
+#train_polyg = train_polyg.to_crs(crs=target_crs.pyproj_crs())
+test_polyg = test_polyg.to_crs(crs=target_crs.pyproj_crs())
+
+prepare_large_aoi_grid(train_shp, target_crs, grid_sz, save=False)
