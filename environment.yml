@@ -49,6 +49,8 @@ dependencies:
           - shapely==1.7.1
           - numpy>=1.19.0
 
+          - pillow==8.0.1
+
           # Plotting
           - imageio==2.9.0
           - geoviews==1.9.1
