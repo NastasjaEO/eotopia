@@ -25,6 +25,10 @@ def configure_basic_workspace(path, **kwargs):
     if not os.path.exists(OUTPUT_DATA_FOLDER):
         OUTPUT_DATA_FOLDER.mkdir()
         
+    if "groundtruth" in kwargs.values():
+        GROUNDTRUTH_PATH = INPUT_DATA_FOLDER / 'Groundtruth'
+        folder_list.append(GROUNDTRUTH_PATH)
+
     if "classification" in kwargs.values():
         RULES_PATH = OUTPUT_DATA_FOLDER / 'Rules'
         if not os.path.exists(RULES_PATH):
@@ -44,7 +48,6 @@ def configure_basic_workspace(path, **kwargs):
         if not os.path.exists(EOPATCH_PATH):
             EOPATCH_PATH.mkdir()
         folder_list.append(EOPATCH_PATH)
-
 
     if "eopatch" and "classification" in kwargs.values():
         EOPATCH_PATH_SAMPLES = EOPATCH_PATH / 'EOPatche_Samples'
