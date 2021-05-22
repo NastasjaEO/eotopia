@@ -39,6 +39,8 @@ dependencies:
 
           - lxml>=4.6.1
           - jinja2==2.11.2
+          
+          - tqdm==4.60.0
 
           - sentinelhub==3.2.1
           - rasterio==1.1.8
