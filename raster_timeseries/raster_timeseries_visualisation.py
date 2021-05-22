@@ -5,9 +5,11 @@ Created on Fri May 14 10:27:34 2021
 @author: freeridingeo
 """
 
+import sys
 import numpy as np
-from eolearn.core import EOPatch
-from .rasterio_IO import save_multibandraster_to_eopatch as saveit
+
+sys.path.append("D:/Code/eotopia/IO")
+from rasterio_IO import save_multibandraster_to_eopatch as saveit
 import imageio
 
 
