@@ -49,13 +49,6 @@ def basic_aoi_preparation(vectorfile_path,
                                                               SplitVal_a,
                                                               SplitVal_b))
         gdf = split_aoi_by_bbox(aoi, crs, ShapeVal_a, ShapeVal_b, outpath)
-        fig, ax = plt.subplots(figsize=(20, 20))
-        gdf.plot(ax=ax, facecolor='w', edgecolor='r', alpha=0.5, linewidth=5)
-        aoi.plot(ax=ax, facecolor='w', edgecolor='k', alpha=0.5)
-        ax.set_title('AOI Splitted');
-        plt.axis('off')
-        plt.xticks([]);
-        plt.yticks([]);
 
     if res != None:
         width_pix = int((aoi_shape.bounds[2] - aoi_shape.bounds[0])/res)
@@ -89,12 +82,21 @@ def split_aoi_by_bbox(aoi, crs, x_size, y_size, output_path=None):
     gdf = gpd.GeoDataFrame({'index_x': idxs_x, 'index_y': idxs_y},
                        crs=crs,
                        geometry=geometry)
+    fig, ax = plt.subplots(figsize=(20, 20))
+    gdf.plot(ax=ax, facecolor='w', edgecolor='r', alpha=0.5, linewidth=5)
+    aoi.plot(ax=ax, facecolor='w', edgecolor='k', alpha=0.5)
+    ax.set_title('AOI Splitted');
+    plt.axis('off')
+    plt.xticks([]);
+    plt.yticks([]);
+
     if output_path:
         shapefile_name = output_path / 'BBoxes.geojson'
         gdf.to_file(str(shapefile_name), driver="GeoJSON")
     return gdf
 
-def split_aoi_by_bbox_with_specified_size(aoi, size, output_path=None):
+def split_aoi_by_bbox_with_specified_size(aoi, size, ID, 
+                                          output_path=None):
     """ 
     size:   int
             bbox side length in meters
@@ -116,24 +118,48 @@ def split_aoi_by_bbox_with_specified_size(aoi, size, output_path=None):
     gdf = gpd.GeoDataFrame({'index_x': idxs_x, 'index_y': idxs_y},
                        crs=aoi.crs,
                        geometry=geometry)
+    fig, ax = plt.subplots(figsize=(20, 20))
+    gdf.plot(ax=ax, facecolor='w', edgecolor='r', alpha=0.5, linewidth=5)
+    aoi.plot(ax=ax, facecolor='w', edgecolor='k', alpha=0.5)
+    ax.set_title('AOI Splitted');
+    plt.axis('off')
+    plt.xticks([]);
+    plt.yticks([]);
+
+    patchIDs = check_patch_size(bbox_list, info_list, ID, size)
+    # Change the order of the patches (useful for plotting)
+    patchIDs = np.transpose(np.fliplr(np.array(patchIDs)\
+                                      .reshape(int(size/1e4), int(size/1e4))))\
+                                    .ravel()
+
     if output_path:
         shapefile_name = output_path / 'BBoxes.geojson'
         gdf.to_file(str(shapefile_name), driver="GeoJSON")
     return gdf
     
+def check_patch_size(bbox_list, info_list, ID, size):
+    _size = int(size/1e4)
+    patchIDs = []
+    for idx, (bbox, info) in enumerate(zip(bbox_list, info_list)):
+        if (abs(info['index_x'] - info_list[ID]['index_x']) <= 2 and
+            abs(info['index_y'] - info_list[ID]['index_y']) <= 2):
+            patchIDs.append(idx)
+    if len(patchIDs) != _size*_size:
+        print('Warning! Use a different central patch ID,' 
+              'this one is on the border.')
+    return patchIDs
 
-
-# path1 = "D:/Code/eotopia/tests/testdata/vectorfiles/small_test_aoi.shp"
-# path2 = "D:/Code/eotopia/tests/testdata/vectorfiles/large_test_aoi.shp"
+path1 = "D:/Code/eotopia/tests/testdata/vectorfiles/small_test_aoi.shp"
+path2 = "D:/Code/eotopia/tests/testdata/vectorfiles/large_test_aoi.shp"
 # path3 = "D:/Code/eotopia/tests/testdata/vectorfiles/eastern_france.geojson"
-# path4 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_3857.geojson"
-# path5 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_4326.geojson"
+path4 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_3857.geojson"
+path5 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_4326.geojson"
 
 # aoi = basic_aoi_preparation(path1 , crs = "EPSG:32632", split=False)
 
-# testaoi = gpd.read_file(path2)
-# crs = "EPSG:32632"
-# testaoi = testaoi.to_crs(crs)
+testaoi = gpd.read_file(path5)
+crs = "EPSG:32633"
+testaoi = testaoi.to_crs(crs)
 
-# aoi_shape = testaoi.geometry.values[-1]
-
+size = 5000
+    
