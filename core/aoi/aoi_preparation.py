@@ -94,17 +94,17 @@ def split_aoi_by_bbox(aoi, crs, x_size, y_size, output_path=None):
         gdf.to_file(str(shapefile_name), driver="GeoJSON")
     return gdf
 
-path1 = "D:/Code/eotopia/tests/testdata/vectorfiles/small_test_aoi.shp"
-path2 = "D:/Code/eotopia/tests/testdata/vectorfiles/large_test_aoi.shp"
-path3 = "D:/Code/eotopia/tests/testdata/vectorfiles/eastern_france.geojson"
-path4 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_3857.geojson"
-path5 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_4326.geojson"
+# path1 = "D:/Code/eotopia/tests/testdata/vectorfiles/small_test_aoi.shp"
+# path2 = "D:/Code/eotopia/tests/testdata/vectorfiles/large_test_aoi.shp"
+# path3 = "D:/Code/eotopia/tests/testdata/vectorfiles/eastern_france.geojson"
+# path4 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_3857.geojson"
+# path5 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_4326.geojson"
 
-aoi = basic_aoi_preparation(path1 , crs = "EPSG:32632", split=False)
+# aoi = basic_aoi_preparation(path1 , crs = "EPSG:32632", split=False)
 
-testaoi = gpd.read_file(path2)
-crs = "EPSG:32632"
-testaoi = testaoi.to_crs(crs)
+# testaoi = gpd.read_file(path2)
+# crs = "EPSG:32632"
+# testaoi = testaoi.to_crs(crs)
 
-aoi_shape = testaoi.geometry.values[-1]
+# aoi_shape = testaoi.geometry.values[-1]
 
