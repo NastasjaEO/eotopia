@@ -76,7 +76,8 @@ def prepare_large_aoi_grid(vectorfile, t_crs, gr_sz, res=10, save=False):
 
     return patchID, tiles
 
-def create_eopatch_tiles_from_aoi_pixels(aoi_raster, t_crs, grid_sz = 46):
+def create_eopatch_tiles_from_aoi_pixels(aoi_raster, t_crs, 
+                                         res=10, grid_sz = 46):
     """
     Loop through aoi pixels in the geotif to create grid cells. 
     
@@ -114,8 +115,8 @@ def create_eopatch_tiles_from_aoi_pixels(aoi_raster, t_crs, grid_sz = 46):
     gpd_reproj = gpd_reproj.to_crs(crs=t_crs.pyproj_crs())
     designed_bbox_shapes = gpd_reproj.geometry.tolist()
     for aoi_shape in designed_bbox_shapes:
-        width_pix = int((aoi_shape.bounds[2] - aoi_shape.bounds[0])/10)
-        heigth_pix = int((aoi_shape.bounds[3] - aoi_shape.bounds[1])/10)
+        width_pix = int((aoi_shape.bounds[2] - aoi_shape.bounds[0])/res)
+        heigth_pix = int((aoi_shape.bounds[3] - aoi_shape.bounds[1])/res)
 
         width_grid = int(round(width_pix/grid_sz))
         heigth_grid =  int(round(heigth_pix/grid_sz))
