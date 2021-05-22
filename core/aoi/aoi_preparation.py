@@ -94,6 +94,35 @@ def split_aoi_by_bbox(aoi, crs, x_size, y_size, output_path=None):
         gdf.to_file(str(shapefile_name), driver="GeoJSON")
     return gdf
 
+def split_aoi_by_bbox_with_specified_size(aoi, size, output_path=None):
+    """ 
+    size:   int
+            bbox side length in meters
+    """
+    from sentinelhub import UtmZoneSplitter
+    aoi_shape = aoi.geometry.values[-1]
+    bbox_splitter = UtmZoneSplitter([aoi_shape], aoi.crs, size)
+
+    bbox_list = np.array(bbox_splitter.get_bbox_list()) # get list of BBox geometries
+    info_list = np.array(bbox_splitter.get_info_list()) # get list of x (column) and y(row) indices
+
+    print(f'Each bounding box also has some info how it was created.\nExample:\n\
+          bbox: {bbox_list[0].__repr__()} \n info: {info_list[0]}\n')
+
+    geometry = [Polygon(bbox.get_polygon()) for bbox in bbox_list]
+    idxs_x = [info['index_x'] for info in info_list] # get column index for naming EOPatch
+    idxs_y = [info['index_y'] for info in info_list] # get row index for naming EOPatch
+
+    gdf = gpd.GeoDataFrame({'index_x': idxs_x, 'index_y': idxs_y},
+                       crs=aoi.crs,
+                       geometry=geometry)
+    if output_path:
+        shapefile_name = output_path / 'BBoxes.geojson'
+        gdf.to_file(str(shapefile_name), driver="GeoJSON")
+    return gdf
+    
+
+
 # path1 = "D:/Code/eotopia/tests/testdata/vectorfiles/small_test_aoi.shp"
 # path2 = "D:/Code/eotopia/tests/testdata/vectorfiles/large_test_aoi.shp"
 # path3 = "D:/Code/eotopia/tests/testdata/vectorfiles/eastern_france.geojson"
