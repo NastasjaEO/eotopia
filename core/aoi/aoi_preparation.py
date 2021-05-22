@@ -11,6 +11,8 @@ import geopandas as gpd
 from sentinelhub import BBoxSplitter, CRS
 from shapely.geometry import Polygon
 
+import matplotlib.pyplot as plt
+
 def basic_aoi_preparation(vectorfile_path, 
                           crs="EPSG:4326", buffer_size=None, res=None,
                           gr_sz = None, split=False,
@@ -47,6 +49,13 @@ def basic_aoi_preparation(vectorfile_path,
                                                               SplitVal_a,
                                                               SplitVal_b))
         gdf = split_aoi_by_bbox(aoi, crs, ShapeVal_a, ShapeVal_b, outpath)
+        fig, ax = plt.subplots(figsize=(20, 20))
+        gdf.plot(ax=ax, facecolor='w', edgecolor='r', alpha=0.5, linewidth=5)
+        aoi.plot(ax=ax, facecolor='w', edgecolor='k', alpha=0.5)
+        ax.set_title('AOI Splitted');
+        plt.axis('off')
+        plt.xticks([]);
+        plt.yticks([]);
 
     if res != None:
         width_pix = int((aoi_shape.bounds[2] - aoi_shape.bounds[0])/res)
