@@ -19,6 +19,65 @@ from metadata_eopatch import get_feature_dimensions
 sys.path.append("D:/Code/eotopia/utils")
 from string_utils import string_to_variable
 
+import matplotlib.pyplot as plt
+
+def filter_nan(s,o):
+    data = np.transpose(np.array([s.flatten(),o.flatten()]))
+    data = data[~np.isnan(data).any(1)]
+    return data[:,0], data[:,1]
+
+def extract_difference_between_columns(df1, df2, col1, col2):
+    common = df1.merge(df2,on=[col1,col2])
+    diff = df1[(~df1[col1].isin(common[col1])) & (~df1[col2].isin(common[col2]))]
+    return diff
+
+def df_grouby_and_count(df, col):
+    group_by = df.groupby(by=[col])
+    col_avg = group_by.mean()
+    col_count = group_by.count()
+    print("Mean value of " + str(col) + " is ", col_avg)
+    print("Number of " + str(col) + " is ", col_count)
+
+def concatenate_dfs(list_of_dfs, kind="by_append"):
+    if kind == "by_append":
+        df_conc = pd.concat(list_of_dfs)
+    elif kind == "matrixed":
+        df_conc = pd.concat(list_of_dfs, axis=1)
+    return df_conc
+
+def merge_dfs(df1, df2, colname, kind="inner"):
+    """
+    how:    Options: 
+                "inner": print for common rows
+                "outer": print for all rows, not just common rows
+                "df1/df2"
+    """
+    merged_df = pd.merge(df1, df2, how=kind, on=colname)
+    return merged_df
+
+def join_dfs(df1, df2, kind="inner"):
+    """
+    Joining is a convenient method for combining the columns of two potentially 
+    differently-indexed DataFrames into a single result DataFrame.
+    how:    Options: 
+                "inner": print for common rows
+                "outer": print for all rows, not just common rows
+    """
+    join_df = pd.merge(df1, df2, how=kind)
+    return join_df
+
+def identify_unique(dataframe):
+    unique_counts = dataframe.nunique()
+    unique_stats = pd.DataFrame(unique_counts).rename(columns = {'index': 'feature', 0: 'nunique'})
+    unique_stats = unique_stats.sort_values('nunique', ascending = True)
+
+    # Find the columns with only one unique count
+    uniques = pd.DataFrame(unique_counts[unique_counts == 1]).reset_index().rename(columns = {'index': 'feature', 0: 'nunique'})
+    unique_stats.plot.hist(edgecolor = 'k', figsize = (7, 5))
+    plt.ylabel('Frequency', size = 14); plt.xlabel('Unique Values', size = 14); 
+    plt.title('Number of Unique Values Histogram', size = 16);
+
+    return uniques
 
 def feature_array_to_dataframe(eopatch, feature, remove_depth=True, 
                                crs=None, convert_bool=True):
