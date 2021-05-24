@@ -21,7 +21,7 @@ sys.path.append("D:/Code/eotopia/utils")
 from raster_utils import rasterize
 from list_utils import dissolve
 sys.path.append("D:/Code/eotopia/multiprocessing")
-from multiprocessing_utils import multicore
+from multiprocessing_utils import multicore, parallel_apply_along_axis
 
 
 class RasterData(object):
@@ -1240,18 +1240,17 @@ def apply_along_time(src, dst, func1d, nodata, format, cmap=None, maxlines=None,
         print('processing lines {0}:{1}'.format(start, stop))
         with src[start:stop, :, :] as sub:
             arr = sub.array()
-        # TODO!
-        # out = parallel_apply_along_axis(func1d=func1d, axis=2,
-        #                                 arr=arr, cores=cores,
-        #                                 *args, **kwargs)
+        out = parallel_apply_along_axis(func1d=func1d, axis=2,
+                                        arr=arr, cores=cores,
+                                        *args, **kwargs)
         
-        # with src[:, :, 0] as ref:
-        #     ref.write(outname=dst, nodata=nodata, dtype='float32',
-        #               format=format, cmap=cmap, yoff=start,
-        #               array=out, update=True)
+        with src[:, :, 0] as ref:
+            ref.write(outname=dst, nodata=nodata, dtype='float32',
+                      format=format, cmap=cmap, yoff=start,
+                      array=out, update=True)
         
-        # start += maxlines
-        # stop += maxlines
-        # if stop > rows:
-        #     stop = rows
+        start += maxlines
+        stop += maxlines
+        if stop > rows:
+            stop = rows
 
