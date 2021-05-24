@@ -28,14 +28,12 @@ class RasterData(object):
             path = self.__prependVSIdirective(path)
             with rasterio.open(path, 'r') as src:
                 self.src = src
-                self.raster = src.read()
                 self.trafo = src.transform
 
         elif isinstance(path, Path):
             print("")
             with rasterio.open(path, 'r') as src:
                 self.src = src
-                self.raster = src.read()
                 self.trafo = src.transform
 
         # TODO!
@@ -670,6 +668,133 @@ class RasterData(object):
             except RuntimeError:
                 return False
         return True
+
+    def load(self):
+        """
+        load all raster data to internal memory arrays.
+        This shortens the read time of other methods like :meth:`matrix`.
+        """
+        for i in range(1, self.bands + 1):
+            self.__data[i - 1] = self.matrix(i)
+
+    def matrix(self, band=1, mask_nan=True):
+        """
+        read a raster band (subset) into a numpy ndarray
+        Parameters
+        ----------
+        band: int
+            the band to read the matrix from; 1-based indexing
+        mask_nan: bool
+            convert nodata values to :obj:`numpy.nan`? As :obj:`numpy.nan` requires at least float values, any integer array is cast
+            to float32.
+        Returns
+        -------
+        numpy.ndarray
+            the matrix (subset) of the selected band
+        """
+        mat = self.__data[band - 1]
+        if mat is None:
+            mat = self.src.read(band)
+            if mask_nan:
+                if isinstance(self.nodata, list):
+                    nodata = self.nodata[band - 1]
+                else:
+                    nodata = self.nodata
+                mat[mat == nodata] = np.nan
+        return mat
+
+    @property
+    def nodata(self):
+        """
+        float or list ofthe raster nodata value(s)
+        """
+        # nodatas = [self.raster.GetRasterBand(i).GetNoDataValue()
+        #            for i in range(1, self.bands + 1)]
+        # if len(list(set(nodatas))) == 1:
+        #     return nodatas[0]
+        # else:
+        #     return nodatas
+
+    @property
+    def res(self):
+        """
+        the raster resolution in x and y direction
+        """
+        return (abs(float(self.geo['xres'])), abs(float(self.geo['yres'])))
+
+    def rescale(self, fun):
+        """
+        perform raster computations with custom functions and assign them to the 
+        existing raster object in memory
+        
+        Parameters
+        ----------
+        fun: function
+            the custom function to compute on the data
+        
+        Examples
+        --------
+        >>> with RasterData('filename') as Raster:
+        >>>     Raster.rescale(lambda x: 10 * x)
+        """
+        if self.bands != 1:
+            raise ValueError('only single band images are currently supported')
+
+        mat = self.matrix()
+        scaled = fun(mat)
+        self.assign(scaled, band=0)
+
+    def write(self, outname, dtype='default', format='ENVI', nodata='default', compress_tif=False, overwrite=False,
+              cmap=None, update=False, xoff=0, yoff=0, array=None):
+        """
+        write the raster object to a file.
+        Parameters
+        ----------
+        outname: str
+            the file to be written
+        dtype: str
+            the data type of the written file;
+            data type notations of GDAL (e.g. `Float32`) and numpy (e.g. `int8`) are supported.
+        format: str
+            the file format; e.g. 'GTiff'
+        nodata: int or float
+            the nodata value to write to the file
+        compress_tif: bool
+            if the format is GeoTiff, compress the written file?
+        overwrite: bool
+            overwrite an already existing file? Only applies if `update` is `False`.
+        cmap: :osgeo:class:`gdal.ColorTable`
+            a color map to apply to each band.
+            Can for example be created with function :func:`~spatialist.auxil.cmap_mpl2gdal`.
+        update: bool
+            open the output file fpr update or only for writing?
+        xoff: int
+            the x/column offset
+        yoff: int
+            the y/row offset
+        array: numpy.ndarray
+            write different data than that associated with the Raster object
+        Returns
+        -------
+        """
+        update_existing = update and os.path.isfile(outname)
+        dtype = self.src.dtype
+        if not update_existing:
+            if os.path.isfile(outname) and not overwrite:
+                raise RuntimeError('target file already exists')
+            
+            if format == 'GTiff' and not re.search(r'\.tif[f]*$', outname):
+                outname += '.tif'
+            
+            # TODO!
+            ## update meta
+            options = []
+            if format == 'GTiff' and compress_tif:
+                options += ['COMPRESS=DEFLATE', 'PREDICTOR=2']
+            
+            # TODO!
+            with rasterio.open(outname, "w", **self.src.meta) as dst:                
+                dst.write()
 
     def _apply_crs_and_affine(self, params):
         """
