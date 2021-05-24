@@ -15,6 +15,10 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+import geopandas as gpd
+from shapely.geometry import (Point, MultiPoint, 
+                              LineString, MultiLineString,
+                              Polygon, MultiPolygon)
 
 import sys
 sys.path.append("D:/Code/eotopia/utils")
@@ -26,12 +30,8 @@ from multiprocessing_utils import multicore, parallel_apply_along_axis
 
 
 class RasterData(object):
-    """ 
-    """
+
     def __init__(self, path, list_separate=True, timestamps=None):
-        """
-        Constructs a raster image.
-        """
 
         if isinstance(path, str):
             self.path = path if os.path.isabs(path)\
@@ -1258,34 +1258,44 @@ def apply_along_time(src, dst, func1d, nodata, format, cmap=None, maxlines=None,
 ###############################################################################
 
 class VectorData(object):
-    """ 
-    """
     def __init__(self, path):
-        """
-        Constructs a raster image.
-        """
         if isinstance(path, str):
             self.path = path if os.path.isabs(path)\
                 else os.path.join(os.getcwd(), path)
-
+            vector = gpd.read_file(path)
+            self.vector = vector
         elif isinstance(path, Path):
-            print("")
+            vector = gpd.read_file(path)
+            self.vector = vector
 
         # TODO!
         elif isinstance(path, list):
             print()
 
         self.path = path
+        self.driver = self.getDriverByName(path)
 
         # TODO!
-        # self.driver = ogr.GetDriverByName(driver)
         # self.vector = self.driver.CreateDataSource('out') if driver == 'Memory' else self.driver.Open(filename)
         # nlayers = self.vector.GetLayerCount()
         # if nlayers > 1:
         #     raise RuntimeError('multiple layers are currently not supported')
         # elif nlayers == 1:
         #     self.init_layer()
- 
+
+    def getDriverByName(self, path):
+        if isinstance(path, str):
+            vector_path = Path(path)
+        elif isinstance(path, Path):
+            vector_path = path
+
+        ext = vector_path.suffix
+        if "ext" == ".shp":
+            driver = "ESRI Shapefile"
+        elif "ext" == ".geojson":
+            driver = "GeoJSON"
+        return driver
+    
     def __getitem__(self, expression):
         """
         subset the vector object by index or attribute.
