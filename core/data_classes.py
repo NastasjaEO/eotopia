@@ -16,6 +16,8 @@ from pathlib import Path
 import numpy as np
 import rasterio
 import geopandas as gpd
+import shapely
+shapely.speedups.disable()
 from shapely.geometry import (Point, MultiPoint, 
                               LineString, MultiLineString,
                               Polygon, MultiPolygon)
@@ -1259,6 +1261,13 @@ def apply_along_time(src, dst, func1d, nodata, format, cmap=None, maxlines=None,
 
 class VectorData(object):
     def __init__(self, path):
+
+        self.path = path
+        self.driver = self.getDriverByName(path)
+        # TODO!
+        # Memory
+        # self.vector = self.driver.CreateDataSource('out') if driver == 'Memory' else self.driver.Open(filename)
+
         if isinstance(path, str):
             self.path = path if os.path.isabs(path)\
                 else os.path.join(os.getcwd(), path)
@@ -1272,16 +1281,14 @@ class VectorData(object):
         elif isinstance(path, list):
             print()
 
-        self.path = path
-        self.driver = self.getDriverByName(path)
-
-        # TODO!
-        # self.vector = self.driver.CreateDataSource('out') if driver == 'Memory' else self.driver.Open(filename)
+        # CHECK IF NEEDED
         # nlayers = self.vector.GetLayerCount()
         # if nlayers > 1:
         #     raise RuntimeError('multiple layers are currently not supported')
         # elif nlayers == 1:
         #     self.init_layer()
+
+        # self.init_layer()
 
     def getDriverByName(self, path):
         if isinstance(path, str):
@@ -1384,7 +1391,7 @@ class VectorData(object):
         #             message = message.format(fieldname, fieldtype, value, type(value))
         #             raise (NotImplementedError(message))
         
-        # self.layer.CreateFeature(feature)
+        # self.createFeature(feature)
         # feature = None
         # self.init_features()
     
@@ -1400,14 +1407,12 @@ class VectorData(object):
             See `Module ogr <https://gdal.org/python/osgeo.ogr-module.html>`_.
         width: int
             the width of the new field (only for ogr.OFTString fields)
-        Returns
-        -------
         """
         # TODO!
         # fieldDefn = ogr.FieldDefn(name, type)
         # if type == ogr.OFTString:
         #     fieldDefn.SetWidth(width)
-        # self.layer.CreateField(fieldDefn)
+        # self.createField(fieldDefn)
     
     def addlayer(self, name, srs, geomType):
         """
@@ -1425,7 +1430,7 @@ class VectorData(object):
         -------
         """
         # TODO!
-#        self.vector.CreateLayer(name, srs, geomType)
+#        self.createLayer(name, srs, geomType)
 #        self.init_layer()
 
     def addvector(self, vec):
@@ -1441,12 +1446,11 @@ class VectorData(object):
         -------
         """
         # TODO!
-        # vec.layer.ResetReading()
+        num_features = len(vec)
         # for feature in vec.layer:
-        #     self.layer.CreateFeature(feature)
+        #     self.createFeature(feature)
         # self.init_features()
-        # vec.layer.ResetReading()
-
+        
     def bbox(self, outname=None, driver=None, overwrite=True):
         """
         create a bounding box from the extent of the Vector object
@@ -1494,6 +1498,63 @@ class VectorData(object):
         
         return [feature.geometry().ExportToWkt() for feature in features]
 
+    # TODO!
+    def createFeature(name, srs, geomType):
+        """
+        
+        Parameters
+        ----------
+        name : TYPE
+            DESCRIPTION.
+        srs : TYPE
+            DESCRIPTION.
+        geomType : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+
+    # TODO!
+    def createField(name, srs, geomType):
+        """
+        
+        Parameters
+        ----------
+        name : TYPE
+            DESCRIPTION.
+        srs : TYPE
+            DESCRIPTION.
+        geomType : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+
+    # TODO!
+    def createLayer(name, srs, geomType):
+        """
+        
+        Parameters
+        ----------
+        name : TYPE
+            DESCRIPTION.
+        srs : TYPE
+            DESCRIPTION.
+        geomType : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+
     @property
     def extent(self):
         """
@@ -1511,16 +1572,14 @@ class VectorData(object):
         """
         the field definition for each field of the Vector object
         """
-        # TODO
-#        return [self.layerdef.GetFieldDefn(x) for x in range(0, self.nfields)]
+        return [self.getFieldDefn(x) for x in range(0, self.nfields)]
     
     @property
     def fieldnames(self):
         """
         the names of the fields
         """
-        # TODO
-#       return sorted([field.GetName() for field in self.fieldDefs])
+        return sorted([field for field in self.fieldDefs])
     
     @property
     def geomType(self):
@@ -1563,7 +1622,6 @@ class VectorData(object):
         if fieldname not in self.fieldnames:
             raise KeyError('invalid field name')
         out = []
-#        self.layer.ResetReading()
 #        for feature in self.layer:
 #            field = feature.GetField(fieldname)
 #            field = field.strip() if isinstance(field, str) else field
@@ -1600,11 +1658,18 @@ class VectorData(object):
         list of cloned features
         """
         # TODO
-#        self.layer.ResetReading()
 #        features = [x.Clone() for x in self.layer]
-#        self.layer.ResetReading()
 #        return features
-    
+
+    @property()
+    def getFieldCount(self):
+        columns = self.vector.columns
+        return len(self.columns)
+
+    def getFieldDefn(self):
+        columns = self.vector.columns
+        return self.columns
+
     def getProjection(self, type):
         """
         get the CRS of the Vector object. See :func:`spatialist.auxil.crsConvert`.
@@ -1659,15 +1724,17 @@ class VectorData(object):
         """
         the name of the layer
         """
-        # TODO
-#        return self.layer.GetName()
+        if isinstance(self.path, str):
+            self.vector_path = Path(self.path)
+        elif isinstance(self.path, Path):
+            self.vector_path = self.path
+        return self.vector_path.stem
     
     def load(self):
         """
         load all feature into memory
         """
         # TODO!
-        # self.layer.ResetReading()
         # for i in range(self.nfeatures):
         #     if self.__features[i] is None:
         #         self.__features[i] = self.layer[i]
@@ -1677,16 +1744,14 @@ class VectorData(object):
         """
         the number of features
         """
-        # TODO!
-#        return len(self.layer)
+        return len(self.layer)
     
     @property
     def nfields(self):
         """
         the number of fields
         """
-        # TODO!
-#        return self.layerdef.GetFieldCount()
+        return self.getFieldCount()
     
     @property
     def nlayers(self):
@@ -1695,15 +1760,15 @@ class VectorData(object):
         """
         # TODO!
 #        return self.vector.GetLayerCount()
-    
+        return int(1)
+
     @property
     def proj4(self):
         """
         the CRS in PRO4 format
         """
         # TODO!
-#        return self.vector.GetLayerCount()
-        return self.srs.ExportToProj4().strip()
+#        return self.srs.ExportToProj4().strip()
     
     def reproject(self, projection):
         """
@@ -1718,8 +1783,9 @@ class VectorData(object):
             
             # create the CoordinateTransformation
 #            coordTrans = osr.CoordinateTransformation(self.srs, srs_out)
-            
- #           layername = self.layername
+
+        layername = self.layername
+        print(layername)
  #           geomType = self.geomType
  #           features = self.getfeatures()
  #           feat_def = features[0].GetDefnRef()
@@ -1728,7 +1794,7 @@ class VectorData(object):
  #           self.__init__()
  #           self.addlayer(layername, srs_out, geomType)
  #           self.layer.CreateFields(fields)
-            
+   
 #            for feature in features:
 #                geom = feature.GetGeometryRef()
 #                geom.Transform(coordTrans)
