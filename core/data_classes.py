@@ -1488,7 +1488,7 @@ class VectorData(object):
         Returns
         -------
         """
-        # features = self.getfeatures()
+        features = self.getfeatures()
         # for feature in features:
         #     try:
         #         feature.geometry().Set3D(set3D)
@@ -1615,12 +1615,14 @@ class VectorData(object):
         if fieldname not in self.fieldnames:
             raise KeyError('invalid field name')
         out = []
-        # TODO1
-#        for feature in self.layer:
-#            field = feature.GetField(fieldname)
-#            field = field.strip() if isinstance(field, str) else field
+        for i in range(len(self.layer)):
+            feature = self.layer.iloc[i]
+            field = feature(fieldname)
+            field = field.strip() if isinstance(field, str) else field
+            # TODO!
 #            if field == attr:
 #                out.append(feature.Clone())
+            out.append(feature)
         if len(out) == 0:
             return None
         elif len(out) == 1:
@@ -1640,19 +1642,17 @@ class VectorData(object):
         :osgeo:class:`ogr.Feature`
             the requested feature
         """
-        # TODO
         feature = self.layer[index]
-        # if feature is None:
-        #     feature = self.getfeatures()[index]
+        if feature is None:
+            feature = self.getfeatures()[index]
         return feature
     
     def getfeatures(self):
         """
         list of cloned features
         """
-        # TODO
-#        features = [x.Clone() for x in self.layer]
-#        return features
+        features = [x for x in self.layer]
+        return features
 
     @property()
     def getFieldCount(self):
@@ -1767,7 +1767,7 @@ class VectorData(object):
 
         layername = self.layername
         print(layername)
- #           geomType = self.geomType
+        geomType = self.geomType
  #           features = self.getfeatures()
  #           feat_def = features[0].GetDefnRef()
  #           fields = [feat_def.GetFieldDefn(x) for x in range(0, feat_def.GetFieldCount())]
@@ -1801,7 +1801,7 @@ class VectorData(object):
         
         # # save all relevant info from the existing vector object
         # layername = self.layername
-        # geomType = self.geomType
+        geomType = self.geomType
         # layer_definition = ogr.Feature(self.layer.GetLayerDefn())
         # fields = [layer_definition.GetFieldDefnRef(x) for x in range(layer_definition.GetFieldCount())]
         # features = self.getfeatures()
@@ -1823,8 +1823,7 @@ class VectorData(object):
         """
         the geometry's spatial reference system
         """
-        # TODO!
-#        return self.layer.GetSpatialRef()
+        return self.layer.csr
     
     def write(self, outfile, driver=None, overwrite=True):
         """
@@ -1845,12 +1844,10 @@ class VectorData(object):
         Returns
         -------
         """
+        if driver is None:
+            driver = self.getDriverByName(outfile)
+                
         # TODO!
-        # if driver is None:
-        #     driver = self.__driver_autodetect(outfile)
-        
-        # driver = ogr.GetDriverByName(driver)
-        
         # if os.path.exists(outfile):
         #     if overwrite:
         #         driver.DeleteDataSource(outfile)
@@ -1866,7 +1863,6 @@ class VectorData(object):
         # for fieldDef in self.fieldDefs:
         #     outlayer.CreateField(fieldDef)
         
-        # self.layer.ResetReading()
         # for feature in self.layer:
         #     outFeature = ogr.Feature(outlayerdef)
         #     outFeature.SetGeometry(feature.GetGeometryRef())
@@ -2024,10 +2020,10 @@ def intersect(obj1, obj2):
     """
     intersect two Vector objects
     """
-    # TODO!
-    # if not isinstance(obj1, Vector) or not isinstance(obj2, Vector):
-    #     raise RuntimeError('both objects must be of type Vector')
+    if not isinstance(obj1, VectorData) or not isinstance(obj2, VectorData):
+        raise RuntimeError('both objects must be of type VectorData')
     
+    # TODO!
     # obj1 = obj1.clone()
     # obj2 = obj2.clone()
     
