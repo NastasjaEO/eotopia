@@ -14,6 +14,11 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
+import sys
+sys.path.append("D:/Code/eotopia/utils")
+from raster_utils import rasterize
+
+
 class RasterData(object):
     """ 
     """

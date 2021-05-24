@@ -5,6 +5,7 @@ Created on Thu May 13 15:15:23 2021
 @author: freeridingeo
 """
 
+import os
 import numpy as np
 import rasterio
 
@@ -59,7 +60,6 @@ def rasterize(vectorobject, reference, outname=None, burn_values=1,
         if outname is `None`, a raster object pointing to an in-memory dataset else `None`
     Example
     -------
-    >>> from spatialist import Vector, Raster, rasterize
     >>> outname1 = 'target1.tif'
     >>> outname2 = 'target2.tif'
     >>> with Vector('source.shp') as vec:
@@ -70,4 +70,40 @@ def rasterize(vectorobject, reference, outname=None, burn_values=1,
     >>>         expressions = ["ATTRIBUTE2='a'", "ATTRIBUTE2='b'"]
     >>>         rasterize(vec, reference, outname2, burn_values, expressions)
     """
+    if expressions is None:
+        expressions = ['']
+    if isinstance(burn_values, (int, float)):
+        burn_values = [burn_values]
+    if len(expressions) != len(burn_values):
+        raise RuntimeError('expressions and burn_values of different length')
 
+    failed = []
+    for exp in expressions:
+        try:
+            vectorobject.layer.SetAttributeFilter(exp)
+        except RuntimeError:
+            failed.append(exp)
+    if len(failed) > 0:
+        raise RuntimeError('failed to set the following attribute' 
+                           'filter(s): ["{}"]'.format('", '.join(failed)))
+
+    if append and outname is not None and os.path.isfile(outname):
+        target_ds = rasterio.open(outname)
+    # TODO!
+    # else:
+    #     if outname is not None:
+    #         target_ds = gdal.GetDriverByName('GTiff').Create(outname, reference.cols, reference.rows, 1, gdal.GDT_Byte)
+    #     else:
+    #         target_ds = gdal.GetDriverByName('MEM').Create('', reference.cols, reference.rows, 1, gdal.GDT_Byte)
+    #     target_ds.SetGeoTransform(reference.raster.GetGeoTransform())
+    #     target_ds.SetProjection(reference.raster.GetProjection())
+    #     band = target_ds.GetRasterBand(1)
+    #     band.SetNoDataValue(nodata)
+    for expression, value in zip(expressions, burn_values):
+        vectorobject.layer.SetAttributeFilter(expression)
+    #     gdal.RasterizeLayer(target_ds, [1], vectorobject.layer, burn_values=[value])
+    # vectorobject.layer.SetAttributeFilter('')
+    # if outname is None:
+    #     return Raster(target_ds)
+    # else:
+    #     target_ds = None
