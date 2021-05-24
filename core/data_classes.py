@@ -19,6 +19,7 @@ import rasterio
 import sys
 sys.path.append("D:/Code/eotopia/utils")
 from raster_utils import rasterize
+from list_utils import dissolve
 
 
 class RasterData(object):
@@ -1007,9 +1008,8 @@ def stack(srcfiles, dstfile, resampling, targetres, dstnodata, srcnodata=None, s
     """
     srcfiles = srcfiles.copy()
 
-    # TODO!
-#    if len(dissolve(srcfiles)) == 0:
-#        raise RuntimeError('no input files provided to function raster.stack')
+    if len(dissolve(srcfiles)) == 0:
+        raise RuntimeError('no input files provided to function raster.stack')
     
     if layernames is not None:
         if len(layernames) != len(srcfiles):
