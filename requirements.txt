@@ -23,3 +23,5 @@ geoviews==1.9.1
 hvplot==0.7.1
 holoviews==1.9.5
 graphviz==0.16
+ipython==7.19.0
+ipywidgets==7.5.1
