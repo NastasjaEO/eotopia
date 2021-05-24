@@ -446,3 +446,9 @@ class RasterViewer(object):
                 raise TypeError("missing argument '{}'".format(required))
         return {key: value for key, value in args.items() if key in fargs}
 
+    def __format_coord(self, x, y):
+        text_pointer = 'x, y: {0}, {1}; ' \
+                       + self.xlab + ', ' + self.ylab \
+                       + ': {2:.2f}, {3:.2f}; value:'
+        x_img, y_img = self.__map2img(x, y)
+        return text_pointer.format(x_img, y_img, x, y)
