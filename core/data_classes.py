@@ -29,12 +29,14 @@ class RasterData(object):
             with rasterio.open(path, 'r') as src:
                 self.src = src
                 self.raster = src.read()
+                self.trafo = src.transform
 
         elif isinstance(path, Path):
             print("")
             with rasterio.open(path, 'r') as src:
                 self.src = src
                 self.raster = src.read()
+                self.trafo = src.transform
 
         # TODO!
         elif isinstance(path, list):
@@ -75,8 +77,7 @@ class RasterData(object):
     def __str__(self):
         vals = dict()
         vals['rows'], vals['cols'], vals['bands'] = self.src.dim
-        # TOD!
-#        vals.update(self.geo)
+        vals.update(self.geo)
         vals['crs'] = self.src.crs
 #        vals['epsg'] = self.epsg
         vals['filename'] = self.filename if self.filename is not None else 'memory'
@@ -248,7 +249,7 @@ class RasterData(object):
         
         # TODO!
         # update geo dimensions from subset list indices
-        geo = self.src.transform
+        geo = self.trafo
         geo['xmin'] = self.coord_img2map(x=min(subset['cols']))
         geo['ymax'] = self.coord_img2map(y=min(subset['rows']))
         
@@ -446,13 +447,12 @@ class RasterData(object):
         """
         bbox = self.src.bounds
         crs = self.src.crs
-        # TODO!
-#        extent = self.crs.extent
-        # if outname is None:
-        #     return bbox(coordinates=extent, crs=crs)
-        # else:
-        #     bbox(coordinates=extent, crs=crs, outname=outname,
-        #          driver=driver, overwrite=overwrite)
+        extent = self.extent
+        if outname is None:
+            return bbox(coordinates=extent, crs=crs)
+        else:
+            bbox(coordinates=extent, crs=crs, outname=outname,
+                 driver=driver, overwrite=overwrite)
 
     @property
     def cols(self):
@@ -487,8 +487,6 @@ class RasterData(object):
         if x is None and y is None:
             raise TypeError("both 'x' and 'y' cannot be None")
         out = []
-        # TODO!
-        ## geo
         if x is not None:
             out.append(int((x - self.geo['xmin']) / self.geo['xres']))
         if y is not None:
@@ -606,8 +604,7 @@ class RasterData(object):
                     # compute distances of pixel center coordinate to requested point
                     
                     xc = x * xres + hx + self.geo['xmin']
-                    yc = self.geo['ymax'] - y * yres + hy
-                    
+                    yc = self.geo['ymax'] - y * yres + hy                    
                     dx = abs(xc - px)
                     dy = abs(yc - py)
                     
@@ -623,6 +620,56 @@ class RasterData(object):
         else:
             return nodata
     
+    # TODO!
+    @property
+    def files(self):
+        """
+        list of all absolute names of files associated with this raster data set
+        """
+        # fl = self.raster.GetFileList()
+        # if fl is not None:
+        #     return [os.path.abspath(x) for x in fl]
+
+    @property
+    def format(self):
+        return self.src.driver#.ShortName
+
+    @property
+    def geo(self):
+        """
+        General image geo information.
+        Returns
+        -------
+        dict
+            a dictionary with keys `xmin`, `xmax`, `xres`, `rotation_x`, 
+            `ymin`, `ymax`, `yres`, `rotation_y`
+        """
+        out = dict(zip(['xmin', 'xres', 'rotation_x', 'ymax', 'rotation_y', 'yres'],
+                       self.src.transform))
+        
+        # note: yres is negative!
+        out['xmax'] = out['xmin'] + out['xres'] * self.cols
+        out['ymin'] = out['ymax'] + out['yres'] * self.rows
+        return out
+    
+    def is_valid(self):
+        """
+        Check image integrity.
+        Tries to compute the checksum for each raster layer and returns False if this fails.
+        See this forum entry:
+        `How to check if image is valid? <https://lists.osgeo.org/pipermail/gdal-dev/2013-November/037520.html>`_.
+        Returns
+        -------
+        bool
+            is the file valid?
+        """
+        checksum = 0
+        for i in range(self.src.count):
+            try:
+                checksum += self.src.read(i + 1)#.Checksum()
+            except RuntimeError:
+                return False
+        return True
 
     def _apply_crs_and_affine(self, params):
         """
