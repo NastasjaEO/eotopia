@@ -20,6 +20,8 @@ import sys
 sys.path.append("D:/Code/eotopia/utils")
 from raster_utils import rasterize
 from list_utils import dissolve
+sys.path.append("D:/Code/eotopia/multiprocessing")
+from multiprocessing_utils import multicore
 
 
 class RasterData(object):
@@ -1036,13 +1038,13 @@ def stack(srcfiles, dstfile, resampling, targetres, dstnodata, srcnodata=None, s
     ##########################################################################################
     # check if the projection can be read from all images and whether all share the same projection
     crslist = list()
-    # for x in dissolve(srcfiles):
-    #     try:
-    #         projection = RasterData(x).crs
-    #     except RuntimeError as e:
-    #         print('cannot read file: {}'.format(x))
-    #         raise e
-    #     crslist.append(crs)
+    for x in dissolve(srcfiles):
+        try:
+            crs = RasterData(x).crs
+        except RuntimeError as e:
+            print('cannot read file: {}'.format(x))
+            raise e
+        crslist.append(crs)
 
     projections = list(set(crslist))
     if len(projections) > 1:
