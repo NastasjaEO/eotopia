@@ -1351,7 +1351,7 @@ class VectorData(object):
         vals = dict()
         # TODO!
         #vals['proj4'] = self.proj4
-        #vals.update(self.extent)
+        vals.update(self.extent)
         vals['filename'] = self.filename if self.filename is not None else 'memory'
         vals['geomtype'] = ', '.join(list(set(self.geomTypes)))
         
@@ -1488,15 +1488,14 @@ class VectorData(object):
         Returns
         -------
         """
-        features = self.getfeatures()
-        for feature in features:
-            try:
-                feature.geometry().Set3D(set3D)
-            except AttributeError:
-                dim = 3 if set3D else 2
-                feature.geometry().SetCoordinateDimension(dim)
-        
-        return [feature.geometry().ExportToWkt() for feature in features]
+        # features = self.getfeatures()
+        # for feature in features:
+        #     try:
+        #         feature.geometry().Set3D(set3D)
+        #     except AttributeError:
+        #         dim = 3 if set3D else 2
+        #         feature.geometry().SetCoordinateDimension(dim)
+        # return [feature.geometry().ExportToWkt() for feature in features]
 
     # TODO!
     def createFeature(name, srs, geomType):
@@ -1612,23 +1611,22 @@ class VectorData(object):
         list of :osgeo:class:`ogr.Feature` or :osgeo:class:`ogr.Feature`
             the feature(s) matching the search query
         """
-        # TODO1
         attr = attribute.strip() if isinstance(attribute, str) else attribute
         if fieldname not in self.fieldnames:
             raise KeyError('invalid field name')
         out = []
+        # TODO1
 #        for feature in self.layer:
 #            field = feature.GetField(fieldname)
 #            field = field.strip() if isinstance(field, str) else field
 #            if field == attr:
 #                out.append(feature.Clone())
-#        self.layer.ResetReading()
-#        if len(out) == 0:
-#            return None
-#        elif len(out) == 1:
-#            return out[0]
-#        else:
-#            return out
+        if len(out) == 0:
+            return None
+        elif len(out) == 1:
+            return out[0]
+        else:
+            return out
     
     def getFeatureByIndex(self, index):
         """
@@ -1643,10 +1641,10 @@ class VectorData(object):
             the requested feature
         """
         # TODO
-        # feature = self.layer[index]
+        feature = self.layer[index]
         # if feature is None:
         #     feature = self.getfeatures()[index]
-        # return feature
+        return feature
     
     def getfeatures(self):
         """
@@ -1668,15 +1666,8 @@ class VectorData(object):
     def getProjection(self, type):
         """
         get the CRS of the Vector object. See :func:`spatialist.auxil.crsConvert`.
-        Parameters
-        ----------
-        type: str
-            the type of projection required.
-        Returns
-        -------
-        int, str or :osgeo:class:`osr.SpatialReference`
-            the output CRS
         """
+        return self.vector.crs
         # TODO
 #        return crsConvert(self.layer.GetSpatialRef(), type)
     
@@ -1684,27 +1675,23 @@ class VectorData(object):
         """
         the unique attributes of the field
         """
-        # TODO!
-        # self.layer.ResetReading()
-        # attributes = list(set([x.GetField(fieldname) for x in self.layer]))
-        # self.layer.ResetReading()
-        # return sorted(attributes)
+        attributes = list([self.getFieldDefn(x) for x in self.layer])
+        return sorted(attributes)
     
     def init_features(self):
         """
         delete all in-memory features
         """
         # TODO!
-#        del self.__features
-#        self.__features = [None] * self.nfeatures
+        del self.__features
+        self.__features = [None] * self.nfeatures
     
     def init_layer(self):
         """
         initialize a layer object
         """
-        # TODO!
-#        self.layer = self.vector.GetLayer()
-#        self.__features = [None] * self.nfeatures
+        self.layer = self.vector#.GetLayer()
+        self.__features = [None] * self.nfeatures
     
     @property
     def layerdef(self):
@@ -1729,10 +1716,9 @@ class VectorData(object):
         """
         load all feature into memory
         """
-        # TODO!
-        # for i in range(self.nfeatures):
-        #     if self.__features[i] is None:
-        #         self.__features[i] = self.layer[i]
+        for i in range(self.nfeatures):
+            if self.__features[i] is None:
+                self.__features[i] = self.layer[i]
     
     @property
     def nfeatures(self):
