@@ -20,6 +20,7 @@ import sys
 sys.path.append("D:/Code/eotopia/utils")
 from raster_utils import rasterize
 from list_utils import dissolve
+from string_utils import parse_literal
 sys.path.append("D:/Code/eotopia/multiprocessing")
 from multiprocessing_utils import multicore, parallel_apply_along_axis
 
@@ -1254,3 +1255,105 @@ def apply_along_time(src, dst, func1d, nodata, format, cmap=None, maxlines=None,
         if stop > rows:
             stop = rows
 
+###############################################################################
+
+class VectorData(object):
+    """ 
+    """
+    def __init__(self, path):
+        """
+        Constructs a raster image.
+        """
+        if isinstance(path, str):
+            self.path = path if os.path.isabs(path)\
+                else os.path.join(os.getcwd(), path)
+
+        elif isinstance(path, Path):
+            print("")
+
+        # TODO!
+        elif isinstance(path, list):
+            print()
+
+        self.path = path
+
+        # TODO!
+        # self.driver = ogr.GetDriverByName(driver)
+        # self.vector = self.driver.CreateDataSource('out') if driver == 'Memory' else self.driver.Open(filename)
+        # nlayers = self.vector.GetLayerCount()
+        # if nlayers > 1:
+        #     raise RuntimeError('multiple layers are currently not supported')
+        # elif nlayers == 1:
+        #     self.init_layer()
+ 
+    def __getitem__(self, expression):
+        """
+        subset the vector object by index or attribute.
+        Parameters
+        ----------
+        expression: int or str
+            the key or expression to be used for subsetting.
+            See :osgeo:meth:`ogr.Layer.SetAttributeFilter` for details on the expression syntax.
+        Returns
+        -------
+        Vector
+            a vector object matching the specified criteria
+        
+        Examples
+        --------
+        Assuming we have a shapefile called `testsites.shp`, which has an attribute `sitename`,
+        we can subset individual sites and write them to new files like so:
+        
+        >>> from spatialist import Vector
+        >>> filename = 'testsites.shp'
+        >>> with Vector(filename)["sitename='site1'"] as site1:
+        >>>     site1.write('site1.shp')
+        """
+        if not isinstance(expression, (int, str)):
+            raise RuntimeError('expression must be of type int or str')
+
+        expression = parse_literal(expression) if isinstance(expression, str) else expression
+
+        # TODO!
+        # if isinstance(expression, int):
+        #     feat = self.getFeatureByIndex(expression)
+        # else:
+        #     self.layer.SetAttributeFilter(expression)
+        #     feat = self.getfeatures()
+        #     feat = feat if len(feat) > 0 else None
+        #     self.layer.SetAttributeFilter('')
+        # if feat is None:
+        #     return None
+#        else:
+#            return feature2vector(feat, ref=self)
+    
+    def __enter__(self):
+        return self
+
+    def __str__(self):
+        vals = dict()
+        # TODO!
+        #vals['proj4'] = self.proj4
+        #vals.update(self.extent)
+        vals['filename'] = self.filename if self.filename is not None else 'memory'
+        vals['geomtype'] = ', '.join(list(set(self.geomTypes)))
+        
+        info = 'class         : spatialist Vector object\n' \
+               'geometry type : {geomtype}\n' \
+               'extent        : {xmin:.3f}, {xmax:.3f}, {ymin:.3f}, {ymax:.3f} (xmin, xmax, ymin, ymax)\n' \
+               'coord. ref.   : {proj4}\n' \
+               'data source   : {filename}'.format(**vals)
+        return info
+
+    def addfeature(self, geometry, fields=None):
+        """
+        add a feature to the vector object from a geometry
+        Parameters
+        ----------
+        geometry: :osgeo:class:`ogr.Geometry`
+            the geometry to add as a feature
+        fields: dict or None
+            the field names and values to assign to the new feature
+        Returns
+        -------
+        """
