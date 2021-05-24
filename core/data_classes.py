@@ -175,7 +175,6 @@ class RasterData(object):
         # treat float indices as map coordinates and convert them to image coordinates
         yi = index[0]
         if isinstance(yi, float):
-            # TODO!
             yi = self.coord_map2img(y=yi)
         if isinstance(yi, slice):
             if isinstance(yi.start, float) or isinstance(yi.stop, float):
@@ -185,7 +184,6 @@ class RasterData(object):
         
         xi = index[1]
         if isinstance(xi, float):
-            # TODO!
             xi = self.coord_map2img(x=xi)
         if isinstance(xi, slice):
             if isinstance(xi.start, float) or isinstance(xi.stop, float):
@@ -250,7 +248,7 @@ class RasterData(object):
         
         # TODO!
         # update geo dimensions from subset list indices
-        geo = self.geo
+        geo = self.src.transform
         geo['xmin'] = self.coord_img2map(x=min(subset['cols']))
         geo['ymax'] = self.coord_img2map(y=min(subset['rows']))
         
@@ -297,7 +295,7 @@ class RasterData(object):
     #     extent_bbox.close()
     #     if inter:
     #         ext_inter = inter.extent
-    #         ext_ras = self.geo
+    #         ext_ras = self.src.transform
     #         xres, yres = self.res
     #         tolerance_x = xres * subset_tolerance / 100
     #         tolerance_y = yres * subset_tolerance / 100
@@ -427,6 +425,204 @@ class RasterData(object):
                     .format(len(names), self.bands))
         self.__bandnames = names
 
+    def bbox(self, outname=None, driver='ESRI Shapefile', overwrite=True, 
+             source='image'):
+        """
+        Parameters
+        ----------
+        outname: str or None
+            the name of the file to write; If `None`, the bounding box is returned
+            as :class:`~spatialist.vector.Vector` object
+        driver: str
+            The file format to write
+        overwrite: bool
+            overwrite an already existing file?
+        source: {'image', 'gcp'}
+            get the bounding box of either the image or the ground control points
+        Returns
+        -------
+        Vector or None
+            the bounding box vector object
+        """
+        bbox = self.src.bounds
+        crs = self.src.crs
+        # TODO!
+#        extent = self.crs.extent
+        # if outname is None:
+        #     return bbox(coordinates=extent, crs=crs)
+        # else:
+        #     bbox(coordinates=extent, crs=crs, outname=outname,
+        #          driver=driver, overwrite=overwrite)
+
+    @property
+    def cols(self):
+        """
+        the number of image columns
+        """
+        return self.src.cols
+
+    @property
+    def rows(self):
+        """
+        the number of image rows
+        """
+        return self.src.rows
+
+    def coord_map2img(self, x=None, y=None):
+        """
+        convert map coordinates in the raster CRS to image pixel coordinates.
+        Either x, y or both must be defined.
+        
+        Parameters
+        ----------
+        x: int or float
+            the x coordinate
+        y: int or float
+            the y coordinate
+        Returns
+        -------
+        int or tuple
+            the converted coordinate for either x, y or both
+        """
+        if x is None and y is None:
+            raise TypeError("both 'x' and 'y' cannot be None")
+        out = []
+        # TODO!
+        ## geo
+        if x is not None:
+            out.append(int((x - self.geo['xmin']) / self.geo['xres']))
+        if y is not None:
+            out.append(int((self.geo['ymax'] - y) / abs(self.geo['yres'])))
+        return tuple(out) if len(out) > 1 else out[0]
+
+    def coord_img2map(self, x=None, y=None):
+        """
+        convert image pixel coordinates to map coordinates in the raster CRS.
+        Either x, y or both must be defined.
+        
+        Parameters
+        ----------
+        x: int or float
+            the x coordinate
+        y: int or float
+            the y coordinate
+        Returns
+        -------
+        float or tuple
+            the converted coordinate for either x, y or both
+        """
+        if x is None and y is None:
+            raise TypeError("both 'x' and 'y' cannot be None")
+        out = []
+        if x is not None:
+            out.append(self.geo['xmin'] + self.geo['xres'] * x)
+        if y is not None:
+            out.append(self.geo['ymax'] - abs(self.geo['yres']) * y)
+        return tuple(out) if len(out) > 1 else out[0]
+
+    @property
+    def dim(self):
+        """
+        tuple: (rows, columns, bands)
+        """
+        return (self.rows, self.cols, self.bands)
+
+    @property
+    def driver(self):
+        return self.src.driver
+
+    @property
+    def dtype(self):
+        return self.src.dtype
+
+    @property
+    def crs(self):
+        return self.src.crs
+
+    @property
+    def extent(self):
+        return {key: self.geo[key] for key in ['xmin', 'xmax', 'ymin', 'ymax']}
+
+    def extract_weighted_average(self, px, py, radius=1, nodata=None):
+        """
+        extract weighted average of pixels intersecting with a 
+        defined radius to a point.
+        Parameters
+        ----------
+        px: int or float
+            the x coordinate in units of the Raster SRS
+        py: int or float
+            the y coordinate in units of the Raster SRS
+        radius: int or float
+            the radius around the point to extract pixel values from; defined as multiples of the pixel resolution
+        nodata: int
+            a value to ignore from the computations; If `None`, the nodata value of the Raster object is used
+        Returns
+        -------
+        int or float
+            the the weighted average of all pixels within the defined radius
+        """
+        if not self.geo['xmin'] <= px <= self.geo['xmax']:
+            raise RuntimeError('px is out of bounds')
+        if not self.geo['ymin'] <= py <= self.geo['ymax']:
+            raise RuntimeError('py is out of bounds')
+
+        if nodata is None:
+            nodata = self.src.nodata
+        
+        xres, yres = self.res
+        hx = xres / 2.0
+        hy = yres / 2.0
+        
+        xlim = float(xres * radius)
+        ylim = float(yres * radius)
+
+        # compute minimum x and y pixel coordinates
+        xmin = int(np.floor((px - self.geo['xmin'] - xlim) / xres))
+        ymin = int(np.floor((self.geo['ymax'] - py - ylim) / yres))
+        xmin = xmin if xmin >= 0 else 0
+        ymin = ymin if ymin >= 0 else 0
+        
+        # compute maximum x and y pixel coordinates
+        xmax = int(np.ceil((px - self.geo['xmin'] + xlim) / xres))
+        ymax = int(np.ceil((self.geo['ymax'] - py + ylim) / yres))
+        xmax = xmax if xmax <= self.cols else self.cols
+        ymax = ymax if ymax <= self.rows else self.rows
+
+        if self.__data[0] is not None:
+            array = self.__data[0][ymin:ymax, xmin:xmax]
+        else:
+            # TODO!
+            array = self.raster.GetRasterBand(1).ReadAsArray(xmin, ymin, xmax - xmin, ymax - ymin)
+        
+        sum = 0
+        counter = 0
+        weightsum = 0
+        for x in range(xmin, xmax):
+            for y in range(ymin, ymax):
+                # check whether point is a valid image index
+                val = array[y - ymin, x - xmin]
+                if val != nodata:
+                    # compute distances of pixel center coordinate to requested point
+                    
+                    xc = x * xres + hx + self.geo['xmin']
+                    yc = self.geo['ymax'] - y * yres + hy
+                    
+                    dx = abs(xc - px)
+                    dy = abs(yc - py)
+                    
+                    # check whether point lies within ellipse: 
+                        # if ((dx ** 2) / xlim ** 2) + ((dy ** 2) / ylim ** 2) <= 1
+                    weight = np.sqrt(dx ** 2 + dy ** 2)
+                    sum += val * weight
+                    weightsum += weight
+                    counter += 1
+        array = None
+        if counter > 0:
+            return sum / weightsum
+        else:
+            return nodata
+    
 
     def _apply_crs_and_affine(self, params):
         """
