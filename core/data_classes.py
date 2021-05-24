@@ -1558,14 +1558,10 @@ class VectorData(object):
     @property
     def extent(self):
         """
-        the extent of the vector object
-        Returns
-        -------
-        dict
-            a dictionary with keys `xmin`, `xmax`, `ymin`, `ymax`
+        dict of the extent of the vector object
         """
-        # TODO!
-#        return dict(zip(['xmin', 'xmax', 'ymin', 'ymax'], self.layer.GetExtent()))
+        return dict(zip(['xmin', 'xmax', 'ymin', 'ymax'], 
+                        self.layer.total_bounds))
     
     @property
     def fieldDefs(self):
@@ -1586,8 +1582,7 @@ class VectorData(object):
         """
         the layer geometry type
         """
-        # TODO
-#       return self.layerdef.GetGeomType()
+        return self.vector.geom_type[0]
     
     @property
     def geomTypes(self):
