@@ -655,10 +655,12 @@ class RasterData(object):
         """
         out = dict()
         out["xmin"] = self.src.transform[2]
-        out["xres"] = self.src.transform[1]
-        out["rotation_x"] = self.src.transform[0]
-        out["yres"] = self.src.transform[3]
+        out["xres"] = self.src.transform[0]
+        out["rotation_x"] = self.src.transform[1]
+        out["rotation_y"] = self.src.transform[3]
+        out["yres"] = self.src.transform[4]
         out["ymax"] = self.src.transform[5]
+        print(out)
         return out
     
     def is_valid(self):
