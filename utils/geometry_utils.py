@@ -25,7 +25,7 @@ def create_dummy_polygon(eopatch, addition_factor):
                                   [x_blank, y_blank + addition_factor]])
     return dummy_geometry
 
-def create_empty_geometry(geom_type, crs, listofcoordinates):
+def create_empty_geometry(geom_type, listofcoordinates):
     if geom_type == "Polygon":
         geom = Polygon()
     elif geom_type == "Line":
@@ -38,7 +38,7 @@ def create_empty_geometry(geom_type, crs, listofcoordinates):
         geom = MultiLineString()
     return geom
 
-def create_geometry_from_coordinatelist(geom_type, crs, listofcoordinates):
+def create_geometry_from_coordinatelist(geom_type, listofcoordinates):
     if geom_type == "Polygon":
         geom = Polygon(listofcoordinates)
     elif geom_type == "Line":

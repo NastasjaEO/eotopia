@@ -23,9 +23,7 @@ class TestRasterData(unittest.TestCase):
     def testrasterproperties(self):        
         scene = RasterData(rasterdatapath)
         print("init", scene, "\n")
-        print("area", scene.area, "\n")
         print("bandnames", scene.bandnames, "\n")
-        print("bounds", scene.bbox, "\n")
         print("extent", scene.extent, "\n")
         print("geo", scene.geo, "\n")
         print("resolution", scene.res, "\n")
