@@ -8,6 +8,8 @@ Created on Tue May 25 11:50:41 2021
 import unittest
 import logging
 
+import numpy as np
+
 import sys
 sys.path.append("D:/Code/eotopia/core")
 from data_classes import (RasterData, VectorData)
@@ -26,13 +28,16 @@ class TestRasterData(unittest.TestCase):
         print("bounds", scene.bbox, "\n")
         print("extent", scene.extent, "\n")
         print("geo", scene.geo, "\n")
+        print("resolution", scene.res, "\n")
         assert scene.bands == 1
         assert scene.bandnames == ['band1']
+        assert scene.res == (30.0, 30.0)
 
     def testrasterload(self):        
         scene = RasterData(rasterdatapath)
         data = scene.matrix()
         assert data.shape == (72, 84)
+        assert isinstance(data, np.ndarray)
         
 if __name__ == '__main__':
     unittest.main()
