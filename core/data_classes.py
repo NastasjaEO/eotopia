@@ -18,16 +18,12 @@ import rasterio
 import geopandas as gpd
 import shapely
 shapely.speedups.disable()
-from shapely.geometry import (Point, MultiPoint, 
-                              LineString, MultiLineString,
-                              Polygon, MultiPolygon)
 
 import sys
 sys.path.append("D:/Code/eotopia/utils")
 from geometry_utils import (create_empty_geometry,
                             create_geometry_from_coordinatelist,
                             create_linestring_from_points)
-from raster_utils import rasterize
 from list_utils import dissolve
 from string_utils import parse_literal
 sys.path.append("D:/Code/eotopia/multiprocessing")
@@ -93,7 +89,6 @@ class RasterData(object):
         vals['rows'], vals['cols'], vals['bands'] = self.src.dim
         vals.update(self.geo)
         vals['crs'] = self.src.crs
-#        vals['epsg'] = self.epsg
         vals['filename'] = self.filename if self.filename is not None else 'memory'
         if self.timestamps is not None:
             t0 = min(self.timestamps)
@@ -107,7 +102,7 @@ class RasterData(object):
                'resolution : {xres}, {yres} (x, y)\n' \
                '{time}' \
                'extent     : {xmin}, {xmax}, {ymin}, {ymax} (xmin, xmax, ymin, ymax)\n' \
-               'coord. ref.: {crs} (EPSG:{epsg})\n' \
+               'coord. ref.: {crs} \n' \
                'data source: {filename}'.format(**vals)
         
         return info
@@ -151,7 +146,7 @@ class RasterData(object):
         """
         # TODO!
         # subsetting via Vector object
-        # if isinstance(index, Vector):
+        # if isinstance(index, VectorData):
         #     geomtypes = list(set(index.geomTypes))
         #     if len(geomtypes) != 1:
         #         raise RuntimeError('Raster subsetting is only supported for Vector objects with one type of geometry')
@@ -440,34 +435,18 @@ class RasterData(object):
                     .format(len(names), self.bands))
         self.__bandnames = names
 
-    def bbox(self, outname=None, driver='ESRI Shapefile', overwrite=True, 
-             source='image'):
+    def area(self):
         """
-        Parameters
-        ----------
-        outname: str or None
-            the name of the file to write; If `None`, the bounding box is returned
-            as :class:`~spatialist.vector.Vector` object
-        driver: str
-            The file format to write
-        overwrite: bool
-            overwrite an already existing file?
-        source: {'image', 'gcp'}
-            get the bounding box of either the image or the ground control points
-        Returns
-        -------
-        Vector or None
-            the bounding box vector object
+        area object
         """
-        bbox = self.src.bounds
-        crs = self.src.crs
-        extent = self.extent
-        if outname is None:
-            return bbox(coordinates=extent, crs=crs)
-        else:
-            bbox(coordinates=extent, crs=crs, outname=outname,
-                 driver=driver, overwrite=overwrite)
+        return self.src.area
 
+    def bbox(self):
+        """
+        the bounding box vector object
+        """
+        return self.src.bounds
+    
     @property
     def cols(self):
         """
@@ -719,6 +698,7 @@ class RasterData(object):
                 mat[mat == nodata] = np.nan
         return mat
 
+    # TODO!
     @property
     def nodata(self):
         """
@@ -812,6 +792,7 @@ class RasterData(object):
             with rasterio.open(outname, "w", **self.src.meta) as dst:                
                 dst.write()
 
+    # TODO!
     def _apply_visualization(self, params):
         """
         Applies visualization parameters to an image.
@@ -1498,12 +1479,8 @@ class VectorData(object):
         return [geom.wkt for geom in geoms]
 
     # TODO!
-    def createFeature(self, name, srs, geomType, coordinates=None):
+    def createFeature(self, srs, geomType, coordinates=None):
         """
-        
-        Parameters
-        ----------
-        name : str
         srs : TYPE
             DESCRIPTION.
         geomType : str
@@ -1512,8 +1489,7 @@ class VectorData(object):
 
         Returns
         -------
-        None.
-
+        shapely geom object
         """
         if not coordinates:
             geom = create_empty_geometry(geomType, srs)
