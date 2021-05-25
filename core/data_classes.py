@@ -417,7 +417,8 @@ class RasterData(object):
             the index of the band to assign to
         """
         self.__data[band] = array
-    
+        return self.__data[band]
+
     @property
     def bands(self):
         """
@@ -707,13 +708,14 @@ class RasterData(object):
         """
         mat = self.__data[band - 1]
         if mat is None:
-            mat = self.src.read(band)
-            if mask_nan:
-                if isinstance(self.nodata, list):
-                    nodata = self.nodata[band - 1]
-                else:
-                    nodata = self.nodata
-                mat[mat == nodata] = np.nan
+            with rasterio.open(self.path, 'r') as src:
+                mat = src.read(band)
+        #     if mask_nan:
+        #         if isinstance(self.nodata, list):
+        #             nodata = self.nodata[band - 1]
+        #         else:
+        #             nodata = self.nodata
+        #         mat[mat == nodata] = np.nan
         return mat
 
     # TODO!

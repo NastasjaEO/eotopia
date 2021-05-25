@@ -18,7 +18,6 @@ rasterdatapath="D:/Code/eotopia/tests/testdata/rasterdata/raster1.tiff"
 vectordatapath="D:/Code/eotopia/tests/testdata/vectorfiles"
 
 class TestRasterData(unittest.TestCase):
-    scene = RasterData(rasterdatapath)
     def testrasterproperties(self):        
         scene = RasterData(rasterdatapath)
         print("init", scene, "\n")
@@ -27,7 +26,14 @@ class TestRasterData(unittest.TestCase):
         print("bounds", scene.bbox, "\n")
         print("extent", scene.extent, "\n")
         print("geo", scene.geo, "\n")
-    
+        assert scene.bands == 1
+        assert scene.bandnames == ['band1']
+
+    def testrasterload(self):        
+        scene = RasterData(rasterdatapath)
+        data = scene.matrix()
+        assert data.shape == (72, 84)
+        
 if __name__ == '__main__':
     unittest.main()
 
