@@ -24,7 +24,8 @@ from shapely.geometry import (Point, MultiPoint,
 
 import sys
 sys.path.append("D:/Code/eotopia/utils")
-from geometry_utils import create_geometry_from_coordinatelist
+from geometry_utils import (create_geometry_from_coordinatelist,
+                            create_linestring_from_points)
 from raster_utils import rasterize
 from list_utils import dissolve
 from string_utils import parse_literal
@@ -1499,29 +1500,35 @@ class VectorData(object):
         # return [feature.geometry().ExportToWkt() for feature in features]
 
     # TODO!
-    def createFeature(name, srs, geomType, coordinates):
+    def createFeature(self, name, srs, geomType, coordinates):
         """
         
         Parameters
         ----------
-        name : TYPE
-            DESCRIPTION.
+        name : str
         srs : TYPE
             DESCRIPTION.
         geomType : str
             e.g. "Polygon"
-        coordinates : list or tuples
+        coordinates : list or tuples, shapely geom_types
 
         Returns
         -------
         None.
 
         """
-        if isinstance(coordinates, list):
-            geom = create_geometry_from_coordinatelist(geomType, srs, coordinates)            
+        if isinstance(coordinates, list)\
+            and not isinstance(coordinates[0], shapely.geometry.point.Point):
+                geom =\
+                    create_geometry_from_coordinatelist(geomType, srs, coordinates)
+        elif isinstance(coordinates, list)\
+            and isinstance(coordinates[0], shapely.geometry.point.Point):
+                geom =\
+                    create_linestring_from_points(coordinates)
+        return self.geom
 
     # TODO!
-    def createField(name, srs, geomType):
+    def createField(self, name, srs, geomType):
         """
         
         Parameters

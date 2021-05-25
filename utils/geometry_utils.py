@@ -38,3 +38,7 @@ def create_geometry_from_coordinatelist(geom_type, crs, listofcoordinates):
                 pt = Point(i[0], i[1])
                 geom.append(pt)
     return geom
+
+def create_linestring_from_points(points):
+    geom = LineString(points)
+    return geom
