@@ -5,7 +5,7 @@ Created on Sat May 15 10:41:34 2021
 @author: freeridingeo
 """
 
-from shapely.geometry import Polygon, Point, LineString
+from shapely.geometry import Polygon, Point, MultiPoint, LineString
 
 def create_dummy_polygon(eopatch, addition_factor):
     """ 
@@ -37,6 +37,9 @@ def create_geometry_from_coordinatelist(geom_type, crs, listofcoordinates):
             for i in listofcoordinates:
                 pt = Point(i[0], i[1])
                 geom.append(pt)
+    elif geom_type == "MultiPoint" and len(listofcoordinates) > 1:
+        geom = Polygon(listofcoordinates)
+
     return geom
 
 def create_linestring_from_points(points):
