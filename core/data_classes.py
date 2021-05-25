@@ -1480,7 +1480,6 @@ class VectorData(object):
 #    def clone(self):
 #        return feature2vector(self.getfeatures(), ref=self)
 
-    # TODO!
     def convert2wkt(self, set3D=True):
         """
         export the geometry of each feature as a wkt string
@@ -1492,13 +1491,11 @@ class VectorData(object):
         -------
         """
         features = self.getfeatures()
-        # for feature in features:
-        #     try:
-        #         feature.geometry().Set3D(set3D)
-        #     except AttributeError:
-        #         dim = 3 if set3D else 2
-        #         feature.geometry().SetCoordinateDimension(dim)
-        # return [feature.geometry().ExportToWkt() for feature in features]
+        geoms = []
+        for feature in features:
+            geom = feature.geometry
+            geoms.append(geom)
+        return [geom.wkt for geom in geoms]
 
     # TODO!
     def createFeature(self, name, srs, geomType, coordinates=None):
