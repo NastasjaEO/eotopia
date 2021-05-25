@@ -24,6 +24,7 @@ from shapely.geometry import (Point, MultiPoint,
 
 import sys
 sys.path.append("D:/Code/eotopia/utils")
+from geometry_utils import create_geometry_from_coordinatelist
 from raster_utils import rasterize
 from list_utils import dissolve
 from string_utils import parse_literal
@@ -1498,7 +1499,7 @@ class VectorData(object):
         # return [feature.geometry().ExportToWkt() for feature in features]
 
     # TODO!
-    def createFeature(name, srs, geomType):
+    def createFeature(name, srs, geomType, coordinates):
         """
         
         Parameters
@@ -1507,14 +1508,17 @@ class VectorData(object):
             DESCRIPTION.
         srs : TYPE
             DESCRIPTION.
-        geomType : TYPE
-            DESCRIPTION.
+        geomType : str
+            e.g. "Polygon"
+        coordinates : list or tuples
 
         Returns
         -------
         None.
 
         """
+        if isinstance(coordinates, list):
+            geom = create_geometry_from_coordinatelist(geomType, srs, coordinates)            
 
     # TODO!
     def createField(name, srs, geomType):
@@ -1594,8 +1598,7 @@ class VectorData(object):
         """
         the area of the vector geometries
         """
-        # TODO
-#        return sum([x.GetGeometryRef().GetArea() for x in self.getfeatures()])
+        return sum([x.area for x in self.getfeatures()])
     
     def getFeatureByAttribute(self, fieldname, attribute):
         """

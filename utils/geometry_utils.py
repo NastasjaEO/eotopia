@@ -5,7 +5,7 @@ Created on Sat May 15 10:41:34 2021
 @author: freeridingeo
 """
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point, LineString
 
 def create_dummy_polygon(eopatch, addition_factor):
     """ 
@@ -22,3 +22,19 @@ def create_dummy_polygon(eopatch, addition_factor):
                                   [x_blank + addition_factor, y_blank + addition_factor],
                                   [x_blank, y_blank + addition_factor]])
     return dummy_geometry
+
+def create_geometry_from_coordinatelist(geom_type, crs, listofcoordinates):
+    if geom_type == "Polygon":
+        geom = Polygon(listofcoordinates)
+    elif geom_type == "Line":
+        geom = LineString(listofcoordinates)    
+    elif geom_type == "Point":
+        length = len(listofcoordinates)
+        if length == 1:
+            geom = Point(listofcoordinates[0])
+        elif length > 1:
+            geom = []
+            for i in listofcoordinates:
+                pt = Point(i[0], i[1])
+                geom.append(pt)
+    return geom
