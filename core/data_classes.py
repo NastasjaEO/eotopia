@@ -24,7 +24,8 @@ from shapely.geometry import (Point, MultiPoint,
 
 import sys
 sys.path.append("D:/Code/eotopia/utils")
-from geometry_utils import (create_geometry_from_coordinatelist,
+from geometry_utils import (create_empty_geometry,
+                            create_geometry_from_coordinatelist,
                             create_linestring_from_points)
 from raster_utils import rasterize
 from list_utils import dissolve
@@ -1500,7 +1501,7 @@ class VectorData(object):
         # return [feature.geometry().ExportToWkt() for feature in features]
 
     # TODO!
-    def createFeature(self, name, srs, geomType, coordinates):
+    def createFeature(self, name, srs, geomType, coordinates=None):
         """
         
         Parameters
@@ -1517,14 +1518,18 @@ class VectorData(object):
         None.
 
         """
-        if isinstance(coordinates, list)\
-            and not isinstance(coordinates[0], shapely.geometry.point.Point):
-                geom =\
-                    create_geometry_from_coordinatelist(geomType, srs, coordinates)
-        elif isinstance(coordinates, list)\
-            and isinstance(coordinates[0], shapely.geometry.point.Point):
-                geom =\
-                    create_linestring_from_points(coordinates)
+        if not coordinates:
+            geom = create_empty_geometry(geomType, srs)
+        
+        else:
+            if isinstance(coordinates, list)\
+                and not isinstance(coordinates[0], shapely.geometry.point.Point):
+                    geom =\
+                        create_geometry_from_coordinatelist(geomType, srs, coordinates)
+            elif isinstance(coordinates, list)\
+                and isinstance(coordinates[0], shapely.geometry.point.Point):
+                    geom =\
+                        create_linestring_from_points(coordinates)
         return self.geom
 
     # TODO!
