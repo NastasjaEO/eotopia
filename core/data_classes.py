@@ -86,10 +86,14 @@ class RasterData(object):
 
     def __str__(self):
         vals = dict()
-        vals['rows'], vals['cols'], vals['bands'] = self.src.dim
-        vals.update(self.geo)
+        vals['rows'] = self.src.height
+        vals['cols'] = self.src.width
+        vals['bands'] = self.src.count
+        vals['extent'] = self.extent
         vals['crs'] = self.src.crs
-        vals['filename'] = self.filename if self.filename is not None else 'memory'
+        # TODO!
+        vals['filename'] = "rasterfile"
+#        vals['filename'] = self.filename if self.filename is not None else 'memory'
         if self.timestamps is not None:
             t0 = min(self.timestamps)
             t1 = max(self.timestamps)
@@ -99,11 +103,17 @@ class RasterData(object):
         
         info = 'class      : Raster object\n' \
                'dimensions : {rows}, {cols}, {bands} (rows, cols, bands)\n' \
-               'resolution : {xres}, {yres} (x, y)\n' \
-               '{time}' \
-               'extent     : {xmin}, {xmax}, {ymin}, {ymax} (xmin, xmax, ymin, ymax)\n' \
+               '{extent}' \
+                '{time}' \
                'coord. ref.: {crs} \n' \
                'data source: {filename}'.format(**vals)
+        # info = 'class      : Raster object\n' \
+        #        'dimensions : {rows}, {cols}, {bands} (rows, cols, bands)\n' \
+        #        'resolution : {xres}, {yres} (x, y)\n' \
+        #        '{time}' \
+        #        'extent     : {xmin}, {xmax}, {ymin}, {ymax} (xmin, xmax, ymin, ymax)\n' \
+        #        'coord. ref.: {crs} \n' \
+        #        'data source: {filename}'.format(**vals)
         
         return info
 
@@ -452,14 +462,14 @@ class RasterData(object):
         """
         the number of image columns
         """
-        return self.src.cols
+        return self.src.width
 
     @property
     def rows(self):
         """
         the number of image rows
         """
-        return self.src.rows
+        return self.src.height
 
     def coord_map2img(self, x=None, y=None):
         """
@@ -532,7 +542,13 @@ class RasterData(object):
 
     @property
     def extent(self):
-        return {key: self.geo[key] for key in ['xmin', 'xmax', 'ymin', 'ymax']}
+        bounds = self.src.bounds
+        extent = dict()
+        extent['xmin'] = bounds[0]
+        extent['xmax'] = bounds[2]
+        extent['ymin'] = bounds[1]
+        extent['ymax'] = bounds[3]
+        return extent
 
     def extract_weighted_average(self, px, py, radius=1, nodata=None):
         """
@@ -637,12 +653,12 @@ class RasterData(object):
             a dictionary with keys `xmin`, `xmax`, `xres`, `rotation_x`, 
             `ymin`, `ymax`, `yres`, `rotation_y`
         """
-        out = dict(zip(['xmin', 'xres', 'rotation_x', 'ymax', 'rotation_y', 'yres'],
-                       self.src.transform))
-        
-        # note: yres is negative!
-        out['xmax'] = out['xmin'] + out['xres'] * self.cols
-        out['ymin'] = out['ymax'] + out['yres'] * self.rows
+        out = dict()
+        out["xmin"] = self.src.transform[2]
+        out["xres"] = self.src.transform[1]
+        out["rotation_x"] = self.src.transform[0]
+        out["yres"] = self.src.transform[3]
+        out["ymax"] = self.src.transform[5]
         return out
     
     def is_valid(self):
@@ -1642,7 +1658,7 @@ class VectorData(object):
         features = [x for x in self.layer]
         return features
 
-    @property()
+    @property
     def getFieldCount(self):
         columns = self.vector.columns
         return len(self.columns)
