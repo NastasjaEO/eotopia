@@ -66,19 +66,4 @@ def basic_aoi_preparation(vectorfile_path,
             print('Dimension of the grid is {} x {}'\
               .format(width_grid, heigth_grid))
 
-    return aoi
-
-
-path1 = "D:/Code/eotopia/tests/testdata/vectorfiles/small_test_aoi.shp"
-path2 = "D:/Code/eotopia/tests/testdata/vectorfiles/large_test_aoi.shp"
-# path3 = "D:/Code/eotopia/tests/testdata/vectorfiles/eastern_france.geojson"
-path4 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_3857.geojson"
-path5 = "D:/Code/eotopia/tests/testdata/vectorfiles/svn_border_4326.geojson"
-
-# aoi = basic_aoi_preparation(path1 , crs = "EPSG:32632", split=False)
-
-testaoi = gpd.read_file(path5)
-crs = "EPSG:32633"
-testaoi = testaoi.to_crs(crs)
-
-size = 5000
+    return gdf
