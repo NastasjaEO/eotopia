@@ -18,10 +18,12 @@ def simple_rasterstack(filelist, dstfile):
         meta = src0.meta
     meta.update(count = len(filelist))
     with rasterio.open(dstfile, 'w', **meta) as dst:
+        stack = []
         for id, layer in enumerate(filelist, start=1):
             with rasterio.open(layer) as src1:
                 dst.write_band(id, src1.read(1))
-
+                stack.append(id)
+    return stack
 
 def stack(srcfiles, dstfile, resampling, targetres, dstnodata, 
           srcnodata=None, shapefile=None, layernames=None,
