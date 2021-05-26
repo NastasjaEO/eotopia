@@ -90,6 +90,50 @@ def split_vector_by_bbox_with_specified_size(vector, size, ID,
         gdf.to_file(str(shapefile_name), driver="GeoJSON")
     return gdf, geometry_list
 
+def split_vector_by_bbox_with_specified_zoom(vector, zoomlevel, ID, 
+                                          reduce_bbox_sizes=True, 
+                                          output_path=None):
+    """ 
+    size:   int
+            bbox side length in meters
+    """
+    from sentinelhub import OsmSplitter
+    vector_shape = vector.geometry.values[-1]
+    osm_splitter = OsmSplitter([vector_shape], vector.crs, zoomlevel, 
+                                    reduce_bbox_sizes)
+    bbox_list = np.array(osm_splitter.get_bbox_list()) # get list of BBox geometries
+    info_list = np.array(osm_splitter.get_info_list()) # get list of x (column) and y(row) indices
+    geometry_list = osm_splitter.get_geometry_list()
+
+    print(f'Each bounding box also has some info how it was created.\nExample:\n\
+          bbox: {bbox_list[0].__repr__()} \n info: {info_list[0]}\n')
+
+    geometry = [Polygon(bbox.get_polygon()) for bbox in bbox_list]
+    idxs_x = [info['index_x'] for info in info_list] # get column index for naming EOPatch
+    idxs_y = [info['index_y'] for info in info_list] # get row index for naming EOPatch
+
+    gdf = gpd.GeoDataFrame({'index_x': idxs_x, 'index_y': idxs_y},
+                       crs=vector.crs,
+                       geometry=geometry)
+    fig, ax = plt.subplots(figsize=(20, 20))
+    gdf.plot(ax=ax, facecolor='w', edgecolor='r', alpha=0.5, linewidth=5)
+    vector.plot(ax=ax, facecolor='w', edgecolor='k', alpha=0.5)
+    ax.set_title('Vectorfile Splitted');
+    plt.axis('off')
+    plt.xticks([]);
+    plt.yticks([]);
+
+#    patchIDs = check_patch_size(bbox_list, info_list, ID, size)
+    # Change the order of the patches (useful for plotting)
+#    patchIDs = np.transpose(np.fliplr(np.array(patchIDs)\
+#                                      .reshape(int(size/1e4), int(size/1e4))))\
+#                                    .ravel()
+
+    if output_path:
+        shapefile_name = output_path / 'BBoxes.geojson'
+        gdf.to_file(str(shapefile_name), driver="GeoJSON")
+    return gdf, geometry_list
+
 def check_patch_size(bbox_list, info_list, ID, size):
     _size = int(size/1e4)
     patchIDs = []
@@ -102,15 +146,3 @@ def check_patch_size(bbox_list, info_list, ID, size):
               'this one is on the border.')
     return patchIDs
 
-def show_splitter(splitter, alpha=0.2, area_buffer=0.2, show_legend=False):
-    area_bbox = splitter.get_area_bbox()
-    minx, miny, maxx, maxy = area_bbox
-    lng, lat = area_bbox.middle
-    w, h = maxx - minx, maxy - miny
-    minx = minx - area_buffer * w
-    miny = miny - area_buffer * h
-    maxx = maxx + area_buffer * w
-    maxy = maxy + area_buffer * h
-
-    fig=plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot(111)
