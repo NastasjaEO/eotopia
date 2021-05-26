@@ -10,9 +10,9 @@ from pathlib import Path
 import geopandas as gpd
 from sentinelhub import BBoxSplitter, CRS
 
-sys.path.append("D:/Code/eotopia/core/aoi")
-from aoi_splitting import (split_aoi_by_bbox, 
-                           split_aoi_by_bbox_with_specified_size)
+sys.path.append("D:/Code/eotopia/core/vector")
+from aoi_splitting import (split_vector_by_bbox, 
+                           split_vector_by_bbox_with_specified_size)
 
 def basic_aoi_preparation(vectorfile_path, 
                           crs="EPSG:4326", buffer_size=None, res=None,
@@ -49,10 +49,10 @@ def basic_aoi_preparation(vectorfile_path,
                                                               ShapeVal_b,
                                                               SplitVal_a,
                                                               SplitVal_b))
-        gdf = split_aoi_by_bbox(aoi, crs, ShapeVal_a, ShapeVal_b, outpath)
+        gdf = split_vector_by_bbox(aoi, crs, ShapeVal_a, ShapeVal_b, outpath)
 
     if isinstance(split, int):
-        gdf = split_aoi_by_bbox_with_specified_size(aoi, split, ID)
+        gdf = split_vector_by_bbox_with_specified_size(aoi, split, ID)
 
     if res != None:
         width_pix = int((aoi_shape.bounds[2] - aoi_shape.bounds[0])/res)
