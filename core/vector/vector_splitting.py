@@ -13,13 +13,15 @@ from shapely.geometry import Polygon
 
 import matplotlib.pyplot as plt
 
-def split_vector_by_bbox(vector, crs, x_size, y_size, output_path=None):
+def split_vector_by_bbox(vector, crs, x_size, y_size, 
+                         reduce_bbox_sizes=True, output_path=None):
     vector_shape = vector.geometry.values[-1]
 
     # split area of interest into an appropriate number of BBoxes
-    bbox_splitter = BBoxSplitter([vector_shape], crs, (x_size, y_size))
+    bbox_splitter = BBoxSplitter([vector_shape], crs, (x_size, y_size), reduce_bbox_sizes)
     bbox_list = np.array(bbox_splitter.get_bbox_list()) # get list of BBox geometries
     info_list = np.array(bbox_splitter.get_info_list()) # get list of x (column) and y(row) indices
+    geometry_list = bbox_splitter.get_geometry_list()
 
     print(f'Each bounding box also has some info how it was created.\nExample:\n\
           bbox: {bbox_list[0].__repr__()} \n info: {info_list[0]}\n')
@@ -42,20 +44,22 @@ def split_vector_by_bbox(vector, crs, x_size, y_size, output_path=None):
     if output_path:
         shapefile_name = output_path / 'BBoxes.geojson'
         gdf.to_file(str(shapefile_name), driver="GeoJSON")
-    return gdf
+    return gdf, geometry_list
 
 def split_vector_by_bbox_with_specified_size(vector, size, ID, 
-                                          output_path=None):
+                                          reduce_bbox_sizes=True, output_path=None):
     """ 
     size:   int
             bbox side length in meters
     """
     from sentinelhub import UtmZoneSplitter
     vector_shape = vector.geometry.values[-1]
-    bbox_splitter = UtmZoneSplitter([vector_shape], vector.crs, size)
+    bbox_splitter = UtmZoneSplitter([vector_shape], vector.crs, size, 
+                                    reduce_bbox_sizes)
 
     bbox_list = np.array(bbox_splitter.get_bbox_list()) # get list of BBox geometries
     info_list = np.array(bbox_splitter.get_info_list()) # get list of x (column) and y(row) indices
+    geometry_list = bbox_splitter.get_geometry_list()
 
     print(f'Each bounding box also has some info how it was created.\nExample:\n\
           bbox: {bbox_list[0].__repr__()} \n info: {info_list[0]}\n')
@@ -84,8 +88,8 @@ def split_vector_by_bbox_with_specified_size(vector, size, ID,
     if output_path:
         shapefile_name = output_path / 'BBoxes.geojson'
         gdf.to_file(str(shapefile_name), driver="GeoJSON")
-    return gdf
-    
+    return gdf, geometry_list
+
 def check_patch_size(bbox_list, info_list, ID, size):
     _size = int(size/1e4)
     patchIDs = []
@@ -97,3 +101,16 @@ def check_patch_size(bbox_list, info_list, ID, size):
         print('Warning! Use a different central patch ID,' 
               'this one is on the border.')
     return patchIDs
+
+def show_splitter(splitter, alpha=0.2, area_buffer=0.2, show_legend=False):
+    area_bbox = splitter.get_area_bbox()
+    minx, miny, maxx, maxy = area_bbox
+    lng, lat = area_bbox.middle
+    w, h = maxx - minx, maxy - miny
+    minx = minx - area_buffer * w
+    miny = miny - area_buffer * h
+    maxx = maxx + area_buffer * w
+    maxy = maxy + area_buffer * h
+
+    fig=plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111)
