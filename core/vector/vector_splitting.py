@@ -41,6 +41,33 @@ def split_vector_by_area(vector, crs, dict_of_criteria,
     gdf = get_splitter_gdf(vector, splitter, crs, outpath, plot=True)
     return gdf, splitter
 
+def split_vector_by_utm(vector, crs, dict_of_criteria, 
+                         how="zone",
+                         reduce_bbox=True, outpath=None):
+    """
+    vector:         GeoDataFrame
+    
+    Returns:
+        gdf         GeoDataFrame with split infos
+        splitter    Splitter object which contains more info
+    """
+    vector_shape = vector.geometry.values[-1]
+    if how == 'zone':
+        x_size =  dict_of_criteria['x_size']
+        y_size =  dict_of_criteria['y_size']
+        splitter = UtmZoneSplitter([vector_shape], crs, 
+                                (x_size, y_size), 
+                                reduce_bbox_sizes = reduce_bbox)
+    elif how == 'grid':
+        x_size =  dict_of_criteria['x_size']
+        y_size =  dict_of_criteria['y_size']
+        splitter = UtmGridSplitter([vector_shape], crs, 
+                                (x_size, y_size), 
+                                reduce_bbox_sizes = reduce_bbox)
+
+    gdf = get_splitter_gdf(vector, splitter, crs, outpath, plot=True)
+    return gdf, splitter
+
 def split_vector_by_tile(vector, crs, time_interval, tile_split_shape=1, 
                          data_collection=None, config=None,
                          reduce_bbox=True, outpath=None):
