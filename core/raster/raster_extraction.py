@@ -8,6 +8,20 @@ Created on Wed May 26 10:30:52 2021
 import numpy as np
 import rasterio
 
+
+def get_pixelvalue_at_latlongpoint(rasterpath, long, lat, iband=1):
+    """
+    Return pixel coordinates of raster image corresponding on the coordinates
+    of a point.
+    """   
+    with rasterio.open(rasterpath) as src:        # Get image and params.
+        img = src.read(iband)
+        width, height = img.shape
+        x = np.array([long])
+        y = np.array([lat])       
+        idxs = [src.index(point[0], point[1]) for point in zip(x, y)]
+    return idxs
+
 def return_pixel_index(pixel_coordinates, window):
     """
     pixel_coordinates: Tuple
