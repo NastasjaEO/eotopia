@@ -26,3 +26,16 @@ def return_pixel_index(pixel_coordinates, window):
     )
     return index_window
 
+def extract_pixel_value(pixel_coordinates, window):
+    """
+    pixel_coordinates: Tuple
+    window: Window
+    """
+    index_window = return_pixel_index(pixel_coordinates, window)
+
+    (row_min, row_max), (col_min, col_max) = window.toranges()
+    pixel_mapping_window = (
+        pixel_coordinates[0][index_window] - row_min,
+        pixel_coordinates[1][index_window] - col_min,
+    )
+    return pixel_mapping_window, index_window
