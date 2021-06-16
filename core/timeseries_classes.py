@@ -14,6 +14,22 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 plt.style.use('bmh')
 
+def cum_mean(arr):
+    cum_sum = np.cumsum(arr, axis=0)    
+    for i in range(cum_sum.shape[0]):       
+        if i == 0:
+            continue        
+        cum_sum[i] =  cum_sum[i] / (i + 1)
+    return cum_sum
+
+def cum_sum(arr):
+    cum_sum = np.cumsum(arr, axis=0)    
+    for i in range(cum_sum.shape[0]):       
+        if i == 0:
+            continue        
+    return cum_sum
+
+
 
 class TimeSeries(object):
 
@@ -50,6 +66,13 @@ class TimeSeries(object):
         axes[1].set_title('Month-wise Box Plot\n(The Seasonality)', fontsize=18)
         plt.show()
 
+        fig = plt.figure(figsize=(20,8))
+        self.data_df.groupby(['Date'])[columname].sum().plot(figsize=(10,6), style='o')
+        plt.xlabel("Time")
+        plt.ylabel(columname)
+        plt.title("Scattered values of "+str(columname))
+        plt.show()
+
     def prepare_timeseries_yr_m_day_doyr(self):
         
         self.data_df = self.data_df.assign(
@@ -84,6 +107,55 @@ class TimeSeries(object):
         
         return self.data_df, monthly_stats
 
+    def timeseries_statistics(self, columname,ndv=0): 
+        tsmetrics={}
+        rperc = np.nanpercentile(self.data_df[columname], [5,50,95])
+        tsmetrics['mean']=np.nanmean(self.data_df[columname])
+        tsmetrics['max']=np.nanmax(self.data_df[columname])
+        tsmetrics['min']=np.nanmin(self.data_df[columname])
+        tsmetrics['range']=tsmetrics['max']-tsmetrics['min']
+        tsmetrics['median']=rperc[1]
+        tsmetrics['p5']=rperc[0]
+        tsmetrics['p95']=rperc[2]
+        tsmetrics['prange']=rperc[2]-rperc[0]
+        tsmetrics['var']=np.nanvar(self.data_df[columname])
+        tsmetrics['cov']=tsmetrics['var']/tsmetrics['mean']
+
+        fig, ax= plt.subplots(1,2,figsize=(16,4))
+        ax[0].hist(tsmetrics['var'].flatten(),bins=100)
+        ax[1].hist(tsmetrics['cov'].flatten(),bins=100)
+        _=ax[0].set_title('Variance')
+        _=ax[1].set_title('Coefficient of Variation')
+        
+        metric_keys=['mean', 'median', 'max', 'min', 
+             'p95', 'p5','range', 'prange','var','cov']
+        fig= plt.figure(figsize=(16,40))
+        idx=1
+        for i in tsmetrics.keys:
+            ax = fig.add_subplot(5,2,idx)
+            if i=='var': vmin,vmax=(0.0,0.005)
+            elif i == 'cov': vmin,vmax=(0.,0.04)
+            else:
+                vmin,vmax=(0.0001,0.3)
+                ax.imshow(tsmetrics[i],vmin=vmin,vmax=vmax,cmap='gray')
+                ax.set_title(i.upper())
+                ax.axis('off')
+                idx+=1
+
+        return tsmetrics
+
+    def timeseries_mean_cumsum(self, columname):
+        """
+        Calculates the cummulative sum of the mean of a timeseries
+        Input:
+        """
+        timeseries_mean_cumsum = cum_sum(self.data_df[columname])
+        fig = plt.figure(figsize=(20,15))
+        plt.plot(self.data_df.index, timeseries_mean_cumsum, linewidth=5)
+        plt.title(columname, fontsize=23)
+        plt.show()
+        return timeseries_mean_cumsum
+
     def moving_average(self, columname, stridelength=7):
         moving_average = self.data_df[columname].rolling(stridelength).mean()
         
@@ -98,15 +170,34 @@ class TimeSeries(object):
         return moving_average
 
     def resample_column(self, columname, freq='MS'):
-        y = self.data_df.resample(freq).mean()
+        y = self.data_df[columname].resample(freq).mean()
 
         plt.figure(figsize=(20, 8))
         plt.plot(y.index, y, 'b-', label = columname)
         plt.xlabel('Date'); plt.title('Monthly Resampled Time Series')
         plt.legend()
 
-    def subsample_column(self, start_date, end_date):
-        time = pd.date_range(start_date, end_date)
+    def subsample_column(self, columname, start_date, end_date, 
+                         temp_scale="month"):
+        t1 = start_date
+        t2 = end_date
 
+        if temp_scale == "month":
+            df_sub = self.data_df[columname][np.logical_and(self.data_df.index.month>=t1, 
+                                                          self.data_df.index.month<=t2)]
+
+        elif temp_scale == "year":
+            df_sub = self.data_df[columname][np.logical_and(self.data_df.index.year>=t1, 
+                                                            self.data_df.index.year<=t2)]
+
+        elif temp_scale == None:
+            df_sub = self.data_df[columname][np.logical_and(self.data_df.index>=t1, 
+                                                            self.data_df.index<=t2)]
+
+        fig, ax = plt.subplots(figsize=(16,4))
+        df_sub.plot(ax=ax)
+        plt.ylabel(columname)
+        _=plt.legend([str(t1) + " to " + str(t2)])
+        
         
     
