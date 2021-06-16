@@ -1119,7 +1119,7 @@ class VectorData(object):
         vals['filename'] = self.filename if self.filename is not None else 'memory'
         vals['geomtype'] = ', '.join(list(set(self.geomTypes)))
         
-        info = 'class         : spatialist Vector object\n' \
+        info = 'class         : Vector object\n' \
                'geometry type : {geomtype}\n' \
                'extent        : {xmin:.3f}, {xmax:.3f}, {ymin:.3f}, {ymax:.3f} (xmin, xmax, ymin, ymax)\n' \
                'coord. ref.   : {proj4}\n' \
